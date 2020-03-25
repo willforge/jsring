@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+
+<div>
+Your Identity is :
+<pre><code id=ident></code></pre>
+
+--&nbsp;<br>
+This page is located at <a href=https://willforge.github.io/jsring/identity.html>https://willforge.github.io/jsring/identity.html</a>
+</div>
+
+
+<script>
+const webui = 'http://127.0.0.1:5001';
+//const webui = 'http://127.0.0.1:5121';
+//const webui = '{{site.data.ipfs.webui}}'
+const api_url = webui + '/api/v0/'
+
+getIdentity().then(callback('ident'))
+
+
+function callback(tag) {
+  const substi = buf => {
+    let e = document.getElementById(tag);
+    e.innerHTML = buf;
+  };
+  return substi
+}
+
+// --------------------------------------------------------------
+function getIdentity() {
+  var url = api_url + 'files/read?&arg=/my/identity/public.yml'
+  return fetchtext(url)
+     .then( obj => { return Promise.resolve(obj.Value) })
+     .catch(logError)
+
+}
+function getPeerID() {
+  var url = api_url + 'config?&arg=Identity.PeerID&encoding=json'
+  console.log(url);
+  return fetchjson(url)
+     .then( obj => { return Promise.resolve(obj.Value) })
+     .catch(logError)
+}
+// --------------------------------------------------------------
+function fetchjson(url) {
+  return fetch(url, { method: "GET"} ).then(validate).then( resp => resp.json() )
+}
+function fetchtext(url) {
+  return fetch(url, { method: "GET", mode: "cors"} ).then(validate).then( resp => resp.text() )
+}
+// --------------------------------------------------------------
+function validate(resp) {
+  if (resp.status >= 200 && resp.status < 300) {
+    return Promise.resolve(resp)
+  }
+  return Promise.reject(new Error(resp.statusText))
+}
+
+function logError(err) { console.log(err); }
+</script>
