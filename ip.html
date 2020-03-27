@@ -1,6 +1,5 @@
+<meta charset="utf8"/>
 <pre>You IPaddress is : <span id=ip>ip</span></pre>
-
-
 
 
 <script>
@@ -9,22 +8,24 @@ getIp()
 
 function getIp() {
  // let url = 'https://postman-echo.com/ip'
+ // let url = 'https://www.cloudflare.com/cdn-cgi/trace'
  // fetch(url).then(validate)
  let url = 'https://iph.heliohost.org/cgi-bin/jsonip.pl'
+ url = 'https://api.ipify.org/?format=json'
  fetch(url,{mode:"cors"}).then(validate)
  .then( resp=> { return resp.json() } )
  .then( json => {
-   console.log('ip:',json.ip)
-   return json.ip
+   if (typeof(json.ip) != 'undefined') {
+     return json.ip
+   } else if (typeof(json.query) != 'undefined') {
+     return json.query
+   } else {
+     console.log('json:',json)
+     return '0.0.0.0'
+   }
   } )
- .then(call2)
  .then(callback('ip'))
  .catch( logError )
-}
-
-function storeip(buf) {
-    ip = buf;
-   return ip;
 }
 
 function callback(tag) {
@@ -35,11 +36,6 @@ function callback(tag) {
   return substi
 }
 
-
-function call2(ip) {
- console.log('ip2:',ip);
- return ip;
-}
 
 function validate(resp) {
   if (resp.status >= 200 && resp.status < 300) {
