@@ -4,9 +4,10 @@
 <meta charset="utf8"/>
 
 <div>
+enter a mfs path and hit enter<br>
 <input name=path type=text
  onChange="getHash(this.value).then(callback('hash'));"> :
-<span id=hash></span>
+<span id=hash><a href=http://ipfs.io/ipfs/%hash%>%hash%></span>
 </div>
 
 
@@ -18,8 +19,8 @@ https://willforge.github.io/jsring/stat.html</a>
 
 <script>
 //const webui = 'http://127.0.0.1:5001';
-//const webui = '{{site.data.ipfs.webui}}'
-const webui = 'http://127.0.0.1:5121';
+const webui = '{{site.data.ipfs.webui}}'
+//const webui = 'http://127.0.0.1:5121';
 const api_url = webui + '/api/v0/'
 
 function callback(tag) {

@@ -1,81 +1,128 @@
-<!DOCTYPE html>
+<pre>Your IPaddress is : <span id=ip>ip</span></pre>
+<pre>Your PeerId is : <span id=peerid>peerid</span></pre>
+<pre>Your Spot is : <span id=spot>spot</span></pre>
 
-<pre>
-Your spot is : <span id=spot>spot</span>
+<!--
+     "--- # spot for $peeId\n"
+     "tic: $tic\n"
+     "ip: $ipSys\n"
+     "spot: $spot
 
-</pre>
+     https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all
+
+-->
 
 <script>
-const webui = 'http://127.0.0.1:5120';
-//const webui = '{{site.data.ipfs.webui}}'
-const api_url = webui + '/api/v0/'
+ const webui = 'http://127.0.0.1:5001';
+ //const webui = '{{site.data.ipfs.webui}}'
+ const api_url = webui + '/api/v0/'
 
+ getPeerID().then(callback('peerid'));
+ getIp().then(callback('ip'));
+ 
+ const promises = [getIp(), getPeerID()];
+ console.log('promises '+promises);
 
+ Promise.all(promises).then(data => {
+     const [ip, peeId] = data;
+     console.log('ip '+ip);
+     console.log('peeId '+peeId);
+     const spot = getSpot(ip, peeId);
+     let e = document.getElementById('spot');
+     e.innerHTML = spot;
+ });
 
-var promises = [ getIp(), getPeerID() ]
+ function getSpot(ip, peeId) {
+     console.log('getSpot input ip '+ip)
+     console.log('getSpot input peeId '+peeId)
+     const tic = getTic();
+     var ipInt = dot2Int(ip);
+     var spot = (tic ^ +ipInt)>>>0;
+     
+     var result = "--- # spot for "+peeId+"\n";
+     result += "tic: "+tic+"\n";
+     result += "ip: "+ipInt+"\n";
+     result += "spot: "+spot+"\n";
+     
+     console.log('getSpot result '+result);
+     return result;
+ } 
+ 
+ function getIp() {
+     let url = 'https://iph.heliohost.org/cgi-bin/jsonip.pl'
+     var result = fetchJsonCors(url)
+	 .then( obj => { return Promise.resolve(obj.ip) })
+	 .catch(logError)
+     console.log('getIp result '+result);
+     return result
+ }
 
-Promise.all(promises)
-.then( results => {
-   var ip = results[0];
-   var peerid = results[1];
-   vat tic = getTic();
-   console.log('ip: '+ip);
-   console.log('peerid: '+peerid);
-}
-)
-.catch(logError)
+ function getPeerID() {
+     let url = api_url + 'config?&arg=Identity.PeerID&encoding=json';
+     console.log('getPeerID url '+url);
+     var result = fetchJson(url)
+	 .then( obj => { return Promise.resolve(obj.Value) })
+	 .catch(logError)
+     console.log('getPeerID result '+result);
+     return result
+ }
+ 
+ function fetchJsonCors(url) {
+     console.log('fetchJson url '+url)
+     return fetch(url, {mode: "cors"} ).then(validate)
+				       .then( resp => resp.json() )
+ }
+ 
+ function fetchJson(url) {
+     console.log('fetchJson url '+url)
+     return fetch(url, { method: "GET"} ).then(validate).then( resp => resp.json() )
+ }
+ 
+ function getTic() {
+     console.log('getTic')
+     var dat = new Date();
+     var result = Math.floor(dat.getTime() / 1000);
+     console.log('getTic result '+result)
+     return +result
+ }
 
-
-
-function getTic() {
- var date = new Date();
- var result = date.getTime() / 1000;
- console.log('getTic: '+result)
- return result
-}
-
-function getIp() {
- // let url = 'https://postman-echo.com/ip'
- // let url = 'https://www.cloudflare.com/cdn-cgi/trace'
- // fetch(url).then(validate)
- let url = 'https://iph.heliohost.org/cgi-bin/jsonip.pl'
- url = 'https://api.ipify.org/?format=json'
- url = 'http://127.0.0.1:8088/cgi-bin/jsonip.pl'
- fetch(url,{mode:"cors"}).then(validate)
- .then( resp => { return resp.json() } )
- .then( json => {
-   if (typeof(json.ip) != 'undefined') {
-     console.log('ip:',json.ip)
-     return json.ip
-   } else if (typeof(json.query) != 'undefined') {
-     return json.query
-   } else {
-     console.log('json:',json)
-     return '0.0.0.0'
+ function dot2num(dip) {
+   let atoms = dip.split('.');
+   var nip = 0;
+   for (let i = 3; i >= 0; i--) {
+     nip |= (+parseInt(atoms[3 - i]) << (i * 8));
+     console.log('nip: '+nip)
    }
-  } )
- .catch( logError )
+   return nip>>>0
+ }
+
+function dot2Int(dot) 
+{
+    let d = dot.split('.');
+    return ((((((+d[0])*256)+(+d[1]))*256)+(+d[2]))*256)+(+d[3]);
 }
-
-function getPeerID() {
-  var url = api_url + 'config?&arg=Identity.PeerID&encoding=json'
-  console.log(url);
-  return fetchjson(url)
-     .then( obj => { return Promise.resolve(obj.Value) })
-     .catch(logError)
-}
-
-
-function fetchjson(url) {
-  return fetch(url, { method: "GET"} ).then(validate).then( resp => resp.json() )
-}
-
-function validate(resp) {
-  if (resp.status >= 200 && resp.status < 300) {
-    return Promise.resolve(resp)
-  }
-  return Promise.reject(new Error(resp.statusText))
-}
-function logError(err) { console.log(err); }
-
+ 
+ function callback(tag) {
+     const substi = obj => {
+	 let e = document.getElementById(tag);
+	 e.innerHTML = obj;
+     };
+     return substi
+ }
+ 
+ function validate(resp) {
+     if (resp.status >= 200 && resp.status < 300) {
+	 return Promise.resolve(resp)
+     } else {
+	 console.log('status:',resp.status)
+	 return Promise.reject(new Error(resp.statusText))
+     }
+ }
+ 
+ function logError(err) { console.log("logError "+err); }
+ 
+ console.log('ip',ip);
+ 
 </script>
+
+

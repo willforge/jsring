@@ -1,4 +1,7 @@
+---
+---
 <!DOCTYPE html>
+<meta charset="utf8"/>
 
 <div>
 Your Identity is :
@@ -10,9 +13,9 @@ This page is located at <a href=https://willforge.github.io/jsring/identity.html
 
 
 <script>
-const webui = 'http://127.0.0.1:5001';
-//const webui = 'http://127.0.0.1:5121';
+//const webui = 'http://127.0.0.1:5001';
 //const webui = '{{site.data.ipfs.webui}}'
+const webui = 'http://127.0.0.1:5121';
 const api_url = webui + '/api/v0/'
 
 getIdentity().then(callback('ident'))
@@ -26,18 +29,26 @@ function callback(tag) {
   return substi
 }
 
+function getHash(path) {
+  var url = api_url + 'files/stat?&arg='+path+'&hash=1'
+  return fetchjson(url)
+     // see documents : https://duckduckgo.com/?q=API+HTTP+IPFS+config
+     .then( obj => { return Promise.resolve(obj.Value) })
+     .catch(logError)
+}
+
 // --------------------------------------------------------------
 function getIdentity() {
   var url = api_url + 'files/read?&arg=/my/identity/public.yml'
   return fetchtext(url)
-     .then( obj => { return Promise.resolve(obj.Value) })
+     .then( obj => { return Promise.resolve(obj) })
      .catch(logError)
 
 }
 function getPeerID() {
   var url = api_url + 'config?&arg=Identity.PeerID&encoding=json'
-  console.log(url);
   return fetchjson(url)
+     // see documents : https://duckduckgo.com/?q=API+HTTP+IPFS+config
      .then( obj => { return Promise.resolve(obj.Value) })
      .catch(logError)
 }
@@ -46,14 +57,20 @@ function fetchjson(url) {
   return fetch(url, { method: "GET"} ).then(validate).then( resp => resp.json() )
 }
 function fetchtext(url) {
-  return fetch(url, { method: "GET", mode: "cors"} ).then(validate).then( resp => resp.text() )
+  // needs : "API": { "HTTPHeaders": { "Access-Control-Allow-Origin": ["*"] } },
+  // in $IPFS_PATH/config
+  return fetch(url, {
+    method: "GET",
+    mode: "cors",
+  } ).then(validate).then( resp => resp.text() )
 }
 // --------------------------------------------------------------
 function validate(resp) {
   if (resp.status >= 200 && resp.status < 300) {
     return Promise.resolve(resp)
+  } else {
+    return Promise.reject(new Error(resp.statusText))
   }
-  return Promise.reject(new Error(resp.statusText))
 }
 
 function logError(err) { console.log(err); }
