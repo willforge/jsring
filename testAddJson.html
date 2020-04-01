@@ -1,26 +1,26 @@
 <!DOCTYPE html>
 
-<pre>Your PeerID is : <span id=file>file</span></pre>
+<pre>hash : <span id=file>file</span></pre>
 
 <script>
- const api_url = 'http://127.0.0.1:5001/api/v0/'
  const file = 'test.json';
- const path = 'http://127.0.0.1:8088/github.com/irp_jsring/'
- readFile(file)
+ const file_url = 'http://127.0.0.1:8088/github.com/irp_jsring/test.json' // content to be fetched
+ readFile(file_url)
  .then( content => {
     console.log('content: ',content);
-    getAdd(file,JSON.stringify(content))
+    getAdd(file,content)
   } )
 
 
- function readFile(f) {
-   return fetch(path + f)
-   .then( resp => { console.log(resp); return resp.json()  } )
+ function readFile(file_url) {
+   return fetch(file_url)
+   .then( resp => { console.log(resp); return resp.text()  } )
    .catch(logError) 
  }
 
  function getAdd(file,content) {
      console.log('getAdd input file '+file);
+     const api_url = 'http://127.0.0.1:5001/api/v0/'
      var url = api_url + 'add?arg='+file
      console.log('url: '+url);
 
@@ -35,11 +35,6 @@
    let form = new FormData();
    form.append('file',content)   
    return fetch(url, {
-   /*
-	 headers: {
-	     'Accept': 'application/json',
-	     'Content-Type': 'multipart/form-data;charset=utf-8'
-	 }, */
 	 method: "POST",
    mode: 'cors',
 	 body: form
@@ -50,7 +45,7 @@
      console.log('callback tag: '+tag)
      const substi = buf => {
 	 let e = document.getElementById(tag);
-	 e.innerHTML = buf;
+	 e.innerHTML = "<a href=https://ipfs.io/ipfs/"+buf+">"+buf+"</a>";
      };
      return substi
  }
