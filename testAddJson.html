@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+
+<pre>Your PeerID is : <span id=file>file</span></pre>
+
+<script>
+ const api_url = 'http://127.0.0.1:5001/api/v0/'
+ const file = 'test.json';
+ const path = 'http://127.0.0.1:8088/github.com/irp_jsring/'
+ readFile(file)
+ .then( content => {
+    console.log('content: ',content);
+    getAdd(file,JSON.stringify(content))
+  } )
+
+
+ function readFile(f) {
+   return fetch(path + f)
+   .then( resp => { console.log(resp); return resp.json()  } )
+   .catch(logError) 
+ }
+
+ function getAdd(file,content) {
+     console.log('getAdd input file '+file);
+     var url = api_url + 'add?arg='+file
+     console.log('url: '+url);
+
+   fetchTextPost(url, content)
+   .then( obj => obj.json() )
+   .then( json => { console.log('json: ',json); return json.Hash } )
+   .then( callback('file') )
+	 .catch(logError)
+ }
+
+ function fetchTextPost(url, content) {
+   let form = new FormData();
+   form.append('file',content)   
+   return fetch(url, {
+   /*
+	 headers: {
+	     'Accept': 'application/json',
+	     'Content-Type': 'multipart/form-data;charset=utf-8'
+	 }, */
+	 method: "POST",
+   mode: 'cors',
+	 body: form
+     })
+ }
+
+ function callback(tag) {
+     console.log('callback tag: '+tag)
+     const substi = buf => {
+	 let e = document.getElementById(tag);
+	 e.innerHTML = buf;
+     };
+     return substi
+ }
+
+ function validate(resp) {
+     if (resp.status >= 200 && resp.status < 300) {
+	 return Promise.resolve(resp)
+     }
+     return Promise.reject(new Error(resp.statusText))
+ }
+
+ function logError(err) { console.log(err); }
+
+</script>
