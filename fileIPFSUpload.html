@@ -1,0 +1,41 @@
+<H3>Select a file from disk space to store it in a Local IPFS directory</H3>
+
+
+
+<form method=POST>
+Select a file: <input type=file>
+<input name=mfspath type=text value="" placeholder="mfs path">
+<input type=button onClick="writeFile(this.closest('form'))" value="Upload">
+</form>
+
+
+<script>
+
+function writeFile(form) {
+  console.log(form.elements);
+  let path = form.elements[0].value
+  console.log('path:',path)
+  let mfspath = form.elements[1].value
+  console.log('mfspath:',mfspath)
+  let file = form.elements[0].files[0]
+  console.log('element[0].files:',form.elements[0].files)
+  console.log('file:',file)
+  let reader = new FileReader();
+  reader.onload = event => console.log(event.target)
+  /*
+   reader.addEventListener('load', function() {
+            console.log('Contenu du fichier "' + file.name + '" :\n\n' + reader.result);
+        });
+  */
+
+
+  let content = reader.readAsText(file,'UTF-8') 
+  console.log('content:',content);
+  let formData = new FormData();
+  formData.append("file", file);
+  console.log('form:',formData)
+
+}
+
+</script>
+
