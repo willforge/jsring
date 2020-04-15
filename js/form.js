@@ -1,13 +1,17 @@
 
-var form = document.getElementsByTagName('form')[0]
+const button = form.getElementsByTagName('button')[0]
 
-getCfIp()
-.then(callback(form)).catch(logError);
+getCfIp().then(callback(document.getElementsByTagName('form')[0]));
 
-function callback(form) {
+function process(form) {
+  getQuery(form).then(ipfsappend('/var/logs/forms.log')).catch(logError)
+}
+
+// update ip element w/i d
+function callback(d) {
    const substi = obj => {
-	 //let e = form.getElementsByName('ip')[0];
-	 let e = form.elements['ip'];
+	 let e = d.getElementsByName('ip')[0];
+	 //let e = form.elements['ip'];
    if (typeof e != 'undefined') {
 	   e.value = obj;
    } else {
@@ -16,14 +20,14 @@ function callback(form) {
      i.setAttribute('type','text');
      i.setAttribute('value',obj);
      i.disabled = true;
-     form.appendChild(i);
+     d.appendChild(i);
    }
    };
      return substi
 }
  
 
-function process(form) {
+function getQuery(form) {
   console.dir(form)
   var inputs = Array.from(form.elements)
   console.log(inputs);
@@ -32,8 +36,6 @@ function process(form) {
 
   console.log(names)
   console.log('query: '+query)
-  
-  
 }
 
 function serialize(form) {
@@ -57,6 +59,59 @@ function serialize(form) {
    }
    return s.join('&').replace(/%20/g, '+');
 }
+
+function ipfsLogAppend(mfspath) {
+  return (record => {
+  const api_url = 'http://127.0.0.1:5001/api/v0/'
+  let result = getSizeMfsFile(mfspath)
+  .then( offset => {
+  var url = api_url + 'files/write?arg=' + mfspath + '&create=1&offset='+offset;
+  consLog('offset',offset);
+  return offset;
+  return fetchPostText(url, record)
+  .then( _ => getMFSFileHash(mfspath) ) 
+  .catch(logError)
+  })
+  });
+}
+
+function getMFSFileSize(mfspath) {
+  const api_url = 'http://127.0.0.1:5001/api/v0/'
+  var url = api_url + 'files/stat?arg=' + mfspath + '&size=true'
+  return fetchGetJson(url)
+  .then( json => { return json.Size })
+  .catch(logError)
+}
+function getMFSFileHash(mfspath) {
+   const api_url = 'http://127.0.0.1:5001/api/v0/'
+   var url = api_url + 'files/stat?arg='+mfspath+'&hash=true'
+   return fetchGetJson(url)
+   .then( json => { return json.Hash} );
+}
+
+
+function fetchPostText(url, content) {
+     let form = new FormData();
+     form.append('file', content)   
+     return fetch(url, { method: "POST", mode: 'cors', body: form })
+ }
+
+function fetchGetText(url) {
+   return fetch(url, { method: "GET"} )
+   .then(validate)
+   .then( resp => resp.text() )
+}
+
+function fetchGetJson(url) {
+     console.log('fetchGetJson input url '+url)
+     return fetch(url,
+      { method: "GET"} )
+   .then(validate)
+   .then( resp => resp.json() )
+ }
+
+
+
 function log2json(d) {
   let data = d.replace(/[\r\n]+/g, '","').replace(/\=+/g, '":"');
       data = '{"' + data.slice(0, data.lastIndexOf('","')) + '"}';
@@ -114,5 +169,5 @@ function validate(resp) {
 }
 
 function consLog(data) { console.log('data',data); return data; } 
-function logError(err) { console.log(err); }
+function logError(err) { console.error(err); }
 
