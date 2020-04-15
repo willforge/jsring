@@ -1,85 +1,105 @@
+const gw='http://127.0.0.1:8080'
+let tic = getTic();
 
-const button = form.getElementsByTagName('button')[0]
+const myform = document.getElementsByTagName('form')[0]
+let promises = [
+  getCfIp().then( resolve(myform,'ip') ),
+ getPeerId().then( resolve(myform,'peerid') )
+];
 
-getCfIp().then(callback(document.getElementsByTagName('form')[0]));
+ Promise.all(promises).then(
+  _  => {
+    [ip,peerid] = _
+    console.log('ip: '+ip);
+    console.log('peerid: '+peerid);
+  }
+)
 
-function process(form) {
-  getQuery(form).then(ipfsappend('/var/logs/forms.log')).catch(logError)
+function process(form) { // onclick 
+  let query = getQuery(form);
+  ipfsLogAppend('/var/logs/forms.log',query+'&tic'+tic)
+  .then( hash => {
+    console.log('hash: ',hash);
+    document.getElementById('hash').innerHTML = '<a href="'+gw+'/ipfs/'+hash+'">'+hash+'</a>';
+   })
+  .catch(logError)
+
+  let id = query2json(query)
+  console.log(id)
 }
 
-// update ip element w/i d
-function callback(d) {
-   const substi = obj => {
-	 let e = d.getElementsByName('ip')[0];
-	 //let e = form.elements['ip'];
+function resolve(form,name) {
+   return substi = x => { addInput(form,name,x); return x };
+}
+
+// update input element w/i form
+function addInput(form,name,value) {
+	 let e = form.elements[name];
    if (typeof e != 'undefined') {
-	   e.value = obj;
+	   e.value = value;
    } else {
-     let i = e.createElement('input');
-     i.setAttribute('name','ip');
+     let s = document.createElement('span'); s.innerHTML = name + ' :'
+     form.insertBefore(s,form.elements['button']); 
+
+     let i = document.createElement('input');
+     i.setAttribute('name',name);
      i.setAttribute('type','text');
-     i.setAttribute('value',obj);
+     i.setAttribute('value',value);
      i.disabled = true;
-     d.appendChild(i);
+     form.insertBefore(i,form.elements['button']);
+
+     let b = document.createElement('br');
+     form.insertBefore(b,form.elements['button']);
    }
-   };
-     return substi
-}
- 
-
-function getQuery(form) {
-  console.dir(form)
-  var inputs = Array.from(form.elements)
-  console.log(inputs);
-  let names = inputs.map( e => e.name )
-  let query = serialize(form);
-
-  console.log(names)
-  console.log('query: '+query)
 }
 
-function serialize(form) {
-   var field, l, s = [];
-   if (typeof form == 'object' && form.nodeName == "FORM") {
-      var len = form.elements.length;
-      for (var i=0; i<len; i++) {
-         field = form.elements[i];
-         if (field.name && !field.removed && field.type != 'file' && field.type != 'reset' && field.type != 'submit' && field.type != 'button') {
-            if (field.type == 'select-multiple') {
-               l = form.elements[i].options.length; 
-               for (var j=0; j<l; j++) {
-                  if(field.options[j].selected)
-                     s[s.length] = encodeURIComponent(field.name) + "=" + encodeURIComponent(field.options[j].value);
-               }
-            } else if ((field.type != 'checkbox' && field.type != 'radio') || field.checked) {
-               s[s.length] = encodeURIComponent(field.name) + "=" + encodeURIComponent(field.value);
-            }
-         }
-      }
-   }
-   return s.join('&').replace(/%20/g, '+');
-}
-
-function ipfsLogAppend(mfspath) {
-  return (record => {
+function ipfsLogAppend(mfspath,record) {
   const api_url = 'http://127.0.0.1:5001/api/v0/'
-  let result = getSizeMfsFile(mfspath)
+  return createParent(mfspath)
+  .then( _ => getMFSFileSize(mfspath))
   .then( offset => {
-  var url = api_url + 'files/write?arg=' + mfspath + '&create=1&offset='+offset;
-  consLog('offset',offset);
-  return offset;
-  return fetchPostText(url, record)
-  .then( _ => getMFSFileHash(mfspath) ) 
+    var url = api_url + 'files/write?arg=' + mfspath + '&create=1&offset='+offset;
+    console.log('offset: ',offset);
+    return fetchPostText(url, record+"\n")
+  .then( _ => getMFSFileHash(mfspath)) 
   .catch(logError)
   })
-  });
+  .catch(logError)
+}
+
+function createParent(path) {
+  const api_url = 'http://127.0.0.1:5001/api/v0/'
+  let dir = path.replace(new RegExp('/[^/]*$'),'');
+  var url = api_url + 'files/stat?arg=' + dir + '&size=true'
+  return fetch(url).then( resp => resp.json() )
+  .then( json => {
+    if (typeof(json.Code) == 'undefined') {
+      console.log('-d '+dir);
+      return json;
+    } else {
+      // {"Message":"file does not exist","Code":0,"Type":"error"}
+      console.log('! -e '+dir);
+      url = api_url + 'files/mkdir?arg=' + dir + '&parents=true'
+      return fetch(url).then(
+       resp => {
+         if (resp.text() == '') {
+           var url = api_url + 'files/stat?arg=' + dir + '&size=true'
+           return fetch(url).then( resp => resp.json() )
+         } else {
+           Promise.reject(new Error(resp.statusText))
+         }
+       })
+      .then ( obj => { console.log(obj) })
+    } 
+  })
+  .catch(logError)
 }
 
 function getMFSFileSize(mfspath) {
   const api_url = 'http://127.0.0.1:5001/api/v0/'
   var url = api_url + 'files/stat?arg=' + mfspath + '&size=true'
-  return fetchGetJson(url)
-  .then( json => { return json.Size })
+  return fetch(url).then( resp => resp.json() )
+  .then( json => { return (typeof json.Size == 'undefined') ? 0 : json.Size } )
   .catch(logError)
 }
 function getMFSFileHash(mfspath) {
@@ -88,86 +108,4 @@ function getMFSFileHash(mfspath) {
    return fetchGetJson(url)
    .then( json => { return json.Hash} );
 }
-
-
-function fetchPostText(url, content) {
-     let form = new FormData();
-     form.append('file', content)   
-     return fetch(url, { method: "POST", mode: 'cors', body: form })
- }
-
-function fetchGetText(url) {
-   return fetch(url, { method: "GET"} )
-   .then(validate)
-   .then( resp => resp.text() )
-}
-
-function fetchGetJson(url) {
-     console.log('fetchGetJson input url '+url)
-     return fetch(url,
-      { method: "GET"} )
-   .then(validate)
-   .then( resp => resp.json() )
- }
-
-
-
-function log2json(d) {
-  let data = d.replace(/[\r\n]+/g, '","').replace(/\=+/g, '":"');
-      data = '{"' + data.slice(0, data.lastIndexOf('","')) + '"}';
-  let json = JSON.parse(data);
-  return json
-}
-function getCfIp() {
-   let url = 'https://www.cloudflare.com/cdn-cgi/trace'
-   return fetch(url)
-   .then( resp => resp.text() )
-   .then ( d => { return log2json(d) } )
-   .then( json => {
-     if (typeof(json.ip) != 'undefined') {
-        return json.ip
-     } else if (typeof(json.query) != 'undefined') {
-        return json.query
-     } else {
-       console.log('json:',json)
-       return '0.0.0.0'
-     }
-   } )
-   .catch( logError )
-}
-
-function getIp() {
- // let url = 'https://postman-echo.com/ip'
- // fetch(url).then(validate)
- let url = 'https://iph.heliohost.org/cgi-bin/jsonip.pl'
- url = 'https://api.ipify.org/?format=json'
- url = 'https://ipinfo.io/json'
- fetch(url,{mode:"cors"}).then(validate)
- .then( resp=> { return resp.json() } )
- .then( json => {
-   if (typeof(json.ip) != 'undefined') {
-     return json.ip
-   } else if (typeof(json.query) != 'undefined') {
-     return json.query
-   } else {
-     console.log('json:',json)
-     return '0.0.0.0'
-   }
-  } )
- .catch( logError )
-}
-
-
-
-function validate(resp) {
-  if (resp.status >= 200 && resp.status < 300) {
-    return Promise.resolve(resp)
-  } else {
-    console.log('status:',resp.status)
-    return Promise.reject(new Error(resp.statusText))
-  }
-}
-
-function consLog(data) { console.log('data',data); return data; } 
-function logError(err) { console.error(err); }
 
