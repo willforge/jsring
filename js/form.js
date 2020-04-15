@@ -35,6 +35,7 @@ function changeImage(imgid) {
     document.getElementById('hash').innerHTML = '/!\\ IPFS is not available'
     document.getElementById('hash').style.color = 'red'
    } else {
+     console.log('x:',x);
      document.getElementById(imgid).src='https://api.adorable.io/avatar/256/'+x+'.png'
    }
    return x };
