@@ -1,10 +1,12 @@
+const core='brings'
 const gw='http://127.0.0.1:8080'
+
 let tic = getTic();
 
 const myform = document.getElementsByTagName('form')[0]
 let promises = [
   getCfIp().then( resolve(myform,'ip') ),
- getPeerId().then( resolve(myform,'peerid') ).then( changeImage('photo') )
+ getPeerId().then( resolve(myform,'peerid') ).then( changeImage('photo','ssi') )
 ];
 
  Promise.all(promises).then(
@@ -25,10 +27,18 @@ function process(form) { // onclick
   .catch(logError)
 
   let id = query2json(query)
-  console.log(id)
+  ipfsWriteJson('/my/identity/public.json',id)
+  .then(ipfsPublish('/my/identity/./public.json'))
+  .catch(logError)
 }
 
-function changeImage(imgid) {
+function ipfsPublish(pubpath) {
+  [parent,fname] = pubpath.split('/./')
+  console.log('parent: ',parent);
+  console.log('fname: ',fname);
+}
+
+function changeImage(imgid,seed) {
    return substi = x => {
    if (typeof x == 'undefined' || x == 'undefined') {
      document.getElementById(imgid).src='img/anon.svg'
@@ -36,13 +46,13 @@ function changeImage(imgid) {
     document.getElementById('hash').style.color = 'red'
    } else {
      console.log('x:',x);
-     document.getElementById(imgid).src='https://api.adorable.io/avatar/256/'+x+'.png'
+     document.getElementById(imgid).src='https://api.adorable.io/avatar/256/'+seed+'-'+x+'.png'
    }
    return x };
 }
 
 function resolve(form,name) {
-   return substi = x => { addInput(form,name,x); return x };
+   return x => { addInput(form,name,x); return x };
 }
 
 // update input element w/i form
@@ -66,8 +76,18 @@ function addInput(form,name,value) {
    }
 }
 
+function ipfsWriteJson(mfspath,obj) {
+  return createParent(mfspath)
+  .then( _ => {
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=1&truncate=1';
+    return fetchPostJson(url, obj)
+    .then( _ => getMFSFileHash(mfspath)) 
+    .then(consLog)
+  })
+  .catch(logError)
+}
+
 function ipfsLogAppend(mfspath,record) {
-  const api_url = 'http://127.0.0.1:5001/api/v0/'
   return createParent(mfspath)
   .then( _ => getMFSFileSize(mfspath))
   .then( offset => {
@@ -75,13 +95,11 @@ function ipfsLogAppend(mfspath,record) {
     console.log('offset: ',offset);
     return fetchPostText(url, record+"\n")
   .then( _ => getMFSFileHash(mfspath)) 
-  .catch(logError)
   })
   .catch(logError)
 }
 
 function createParent(path) {
-  const api_url = 'http://127.0.0.1:5001/api/v0/'
   let dir = path.replace(new RegExp('/[^/]*$'),'');
   var url = api_url + 'files/stat?arg=' + dir + '&size=true'
   return fetch(url).then( resp => resp.json() )
@@ -109,14 +127,12 @@ function createParent(path) {
 }
 
 function getMFSFileSize(mfspath) {
-  const api_url = 'http://127.0.0.1:5001/api/v0/'
   var url = api_url + 'files/stat?arg=' + mfspath + '&size=true'
   return fetch(url).then( resp => resp.json() )
   .then( json => { return (typeof json.Size == 'undefined') ? 0 : json.Size } )
   .catch(logError)
 }
 function getMFSFileHash(mfspath) {
-   const api_url = 'http://127.0.0.1:5001/api/v0/'
    var url = api_url + 'files/stat?arg='+mfspath+'&hash=true'
    return fetchGetJson(url)
    .then( json => { return json.Hash} );
