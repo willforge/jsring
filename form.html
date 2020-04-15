@@ -1,20 +1,41 @@
 <!DOCTYPE html>
 <head>
 <link rel="shortcut icon" href="img/ipfs-form.png" type="image/png">
+<style>
+.container {
+ font-size: 18px;
+ margin: auto;
+ max-width: 80%;
+ border: 1px dashed grey;
+ overflow: hidden;
+}
+</style>
 </head>
 
+<div class=container>
 <img id=photo style="float:right" src=https://api.adorable.io/avatar/256/your_peerid.png>
+<h2> Create you own sovereign identity </h2>
+<p>Simply fill up the form below and click "create"
+</p>
+
 <form name=form1 method=POST>
-firstname: <input name=lastn value="Michel" type=text>
-<br>secondname: <input name=firstn value="G." type=text>
-<br>zipcode: <input name=zip value="CH 1024" type=text>
-<br><input onclick="process(this.parentNode)" name=button type=button value="register">
+firstname: <input name=lastn value="" placeholder="your firstname" type=text>
+<br>secondname: <input name=firstn value="" placeholder="your lastname" type=text>
+<br>zipcode: <input name=zip value="" placeholder="zip code of your location" type=text>
+<br><input onclick="process(this.parentNode)" name=button type=button value="create">
 </form>
 Hash: <span id=hash>Qm123</span>
+<p>this page is located at
+<a href=https://willforge.github.io/jsring/form.html>https://willforge.github.io/jsring/form.html</a>
+
+</div>
+<hr>
+<img id=jsdbadge src=https://data.jsdelivr.com/v1/package/gh/michel47/snippets/badge/week>
+
 
 <!-- https://www.jsdelivr.com/package/gh/michel47/snippets 
-<script src="https://cdn.jsdelivr.net/gh/michel47/snippets@latest/js/essential.js" type="text/javascript"></script>
+<script src="https://michel47.github.io/snippets/js/essential.js" type="text/javascript"></script>
 <script src="http://yoogle.com:8088/github.com/snippets/js/essential.js" type="text/javascript"></script>
 -->
-<script src="https://michel47.github.io/snippets/js/essential.js" type="text/javascript"></script>
+<script src="https://cdn.jsdelivr.net/gh/michel47/snippets@master/js/essential.js" type="text/javascript"></script>
 <script src="js/form.js" type="text/javascript"></script>

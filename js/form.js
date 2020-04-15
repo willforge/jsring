@@ -30,7 +30,13 @@ function process(form) { // onclick
 
 function changeImage(imgid) {
    return substi = x => {
-   document.getElementById(imgid).src='https://api.adorable.io/avatar/256/'+x+'.png'
+   if (typeof x == 'undefined') {
+     document.getElementById(imgid).src='img/anon.svg'
+    document.getElementById('hash').innerHTML = '/!\\ IPFS is not available'
+    document.getElementById('hash').style.color = 'red'
+   } else {
+     document.getElementById(imgid).src='https://api.adorable.io/avatar/256/'+x+'.png'
+   }
    return x };
 }
 
