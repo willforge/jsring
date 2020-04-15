@@ -4,7 +4,7 @@ let tic = getTic();
 const myform = document.getElementsByTagName('form')[0]
 let promises = [
   getCfIp().then( resolve(myform,'ip') ),
- getPeerId().then( resolve(myform,'peerid') )
+ getPeerId().then( resolve(myform,'peerid') ).then( changeImage('photo') )
 ];
 
  Promise.all(promises).then(
@@ -26,6 +26,12 @@ function process(form) { // onclick
 
   let id = query2json(query)
   console.log(id)
+}
+
+function changeImage(imgid) {
+   return substi = x => {
+   document.getElementById(imgid).src='https://api.adorable.io/avatar/256/'+x+'.png'
+   return x };
 }
 
 function resolve(form,name) {
