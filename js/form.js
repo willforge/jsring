@@ -30,7 +30,7 @@ function process(form) { // onclick
 
 function changeImage(imgid) {
    return substi = x => {
-   if (typeof x == 'undefined') {
+   if (typeof x == 'undefined' || x == 'undefined') {
      document.getElementById(imgid).src='img/anon.svg'
     document.getElementById('hash').innerHTML = '/!\\ IPFS is not available'
     document.getElementById('hash').style.color = 'red'
