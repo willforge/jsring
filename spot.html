@@ -1,8 +1,20 @@
+<!DOCTYPE html>
+<head>
+<link rel=icon href=img/spot.png>
+<link rel=stylesheet href=css/style.css>
+</head>
+<div class="first container">
+<h2><div id=logo></div>Your SPot on space-time blockRing™ ledger</h2>
+</div>
+<br>
+<div class=container>
 <pre>Your IPaddress is : <span id=ip>ip</span></pre>
 <pre>Your PeerId is : <span id=peerid>peerid</span></pre>
-<pre>Your Spot is : <span id=spot>spot</span></pre>
+<h3>Your Spot is :</h3>
+  <code><pre><span id=spot>spot</span></pre></code>
+</div>
 
-<!--
+<!-- --
      "--- # spot for $peeId\n"
      "tic: $tic\n"
      "ip: $ipSys\n"
@@ -86,21 +98,10 @@
      return +result
  }
 
- function dot2num(dip) {
-   let atoms = dip.split('.');
-   var nip = 0;
-   for (let i = 3; i >= 0; i--) {
-     nip |= (+parseInt(atoms[3 - i]) << (i * 8));
-     console.log('nip: '+nip)
-   }
-   return nip>>>0
- }
-
-function dot2Int(dot) 
-{
+ function dot2Int(dot) {
     let d = dot.split('.');
     return ((((((+d[0])*256)+(+d[1]))*256)+(+d[2]))*256)+(+d[3]);
-}
+ }
  
  function callback(tag) {
      const substi = obj => {

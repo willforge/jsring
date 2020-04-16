@@ -1,0 +1,26 @@
+body {
+  background-color: rgb(50,20,46);
+  /*
+  background-image: linear-gradient();
+   */
+}
+
+.container {
+  /*
+ */
+  max-width: 80%;
+  padding: 1rem;
+  margin: auto;
+  border: 1px dashed grey
+
+  background-color: darkblue;
+  background-image: linear-gradient(to top right, white, lightblue);
+  opacity: 96%;
+
+}
+
+.first {
+  filter: grayscale(50%) invert(100%);
+  position: stickey;
+  top: 2px;
+}

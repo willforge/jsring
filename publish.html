@@ -1,0 +1,57 @@
+---
+---
+<!DOCTYPE html>
+
+<div>
+Your Peerid is : <span id=peerid></span>
+
+
+
+--&nbsp;<br>
+This page is located at <a href=https://willforge.github.io/jsring/publish.html>https://willforge.github.io/jsring/publish.html</a>
+</div>
+
+<script src="http://yoogle.com:8088/github.com/snippets/js/essential.js" type="text/javascript"></script>
+<script src="js/ipfs.js" type="text/javascript"></script>
+<script>
+// host and port are defined in $IPFS_PATH/config
+{% if jekyll.environemnt == 'production' %}
+const webui = 'http://127.0.0.1:5001';
+{% else %}
+const webui = '{{site.data.ipfs.webui}}'
+{% endif %}
+const api_url = webui + '/api/v0/'
+
+// calling the function and update the id=peerid
+getPeerID().then(callback('peerid'))
+
+
+function resolve(tag) {
+  return x => { callback(tag,x); return x }
+}
+function callback(tag,peerid) {
+    let e = document.getElementById(tag);
+    e.innerHTML = peerid;
+}
+
+
+function getPeerID() {
+  var url = api_url + 'config?&arg=Identity.PeerID&encoding=json'
+  console.log(url);
+  return fetchjson(url)
+     .then( obj => { return Promise.resolve(obj.Value) })
+     .catch(error)
+}
+
+function fetchjson(url) {
+  return fetch(url, { method: "GET"} ).then(validate).then( resp => resp.json() )
+}
+
+function validate(resp) {
+  if (resp.status >= 200 && resp.status < 300) {
+    return Promise.resolve(resp)
+  }
+  return Promise.reject(new Error(resp.statusText))
+}
+function error(err) { console.log(err); }
+</script>
