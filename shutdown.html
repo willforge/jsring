@@ -1,37 +1,60 @@
 ---
 ---
 <!DOCTYPE html>
+<head>
 <meta charset="utf8"/>
+<link rel=icon href=img/spot.png>
+<link rel=stylesheet href=css/style.css>
+</head>
 
-<div>
-enter a mfs path and hit enter<br>
-<input name=path type=text
- onChange="getHash(this.value).then(callback('hash'));"> :
-<span id=hash><a href=http://ipfs.io/ipfs/%hash%>%hash%></span>
+<div class="first container">
+<h3>Shut Down you IPFS node <span class=peerid>:peerid</span></h3>
+</div>
+<div class=container>
+Your Peerid is : <span class=peerid>:peerid</span>
+<br>
+<button onclick="shutdown().then(alert('server is down'))">shutdown</button>
 </div>
 
 
+<div class=footer>
 --&nbsp;<br>
-This page is located at <a href=https://willforge.github.io/jsring/stat.html>
+This page is located at <a href=https://willforge.github.io/jsring/shutdown.html>
 https://willforge.github.io/jsring/stat.html</a>
 </div>
 
 
 <script>
-//const webui = 'http://127.0.0.1:5001';
-const webui = '{{site.data.ipfs.webui}}'
+const webui = 'http://127.0.0.1:5001';
+//const webui = '{{site.data.ipfs.webui}}'
 //const webui = 'http://127.0.0.1:5121';
 const api_url = webui + '/api/v0/'
 
-function callback(tag) {
-  const substi = buf => {
-    let e = document.getElementById(tag);
-    e.innerHTML = buf;
-  };
-  return substi
+getPeerId().then(resolve('peerid')).catch(logError)
+//shutdown().then( _ => alert('down'))
+
+function resolve(tag) {
+  // return data => { console.log('data: ',data); return callback(tag,data) };
+  return data => callback(tag,data);
+}
+function callback(key,value) {
+    console.log(key+': '+value);
+    let h = (typeof(value) == 'undefined') ? 'QmXXX' : value;
+    let elements = document.getElementsByClassName(key)
+    for (let i=0; i<elements.length; i++) {
+      let e = elements[i];
+      e.innerHTML = e.innerHTML.replace(RegExp(':'+key,'g'),h);
+    }
+  return value
 }
 
 // --------------------------------------------------------------
+function shutdown() {
+  var url = api_url + 'shutdown'
+  return fetchjson(url).then( obj => { return Promise.resolve(obj) })
+  .catch(logError)
+}
+
 function getHash(path) {
   var url = api_url + 'files/stat?&arg='+path+'&hash=1'
   return fetchjson(url)
@@ -47,7 +70,7 @@ function getIdentity() {
      .catch(logError)
 
 }
-function getPeerID() {
+function getPeerId() {
   var url = api_url + 'config?&arg=Identity.PeerID&encoding=json'
   return fetchjson(url)
      // see documents : https://duckduckgo.com/?q=API+HTTP+IPFS+config
@@ -56,15 +79,14 @@ function getPeerID() {
 }
 // --------------------------------------------------------------
 function fetchjson(url) {
-  return fetch(url, { method: "GET"} ).then(validate).then( resp => resp.json() )
+  return fetch(url, { method: "GET"} )
+  .then(validate).then( resp => resp.json() )
 }
 function fetchtext(url) {
   // needs : "API": { "HTTPHeaders": { "Access-Control-Allow-Origin": ["*"] } },
   // in $IPFS_PATH/config
-  return fetch(url, {
-    method: "GET",
-    mode: "cors",
-  } ).then(validate).then( resp => resp.text() )
+  return fetch(url, { method: "GET", mode: "cors", } )
+  .then(validate).then( resp => resp.text() )
 }
 // --------------------------------------------------------------
 function validate(resp) {

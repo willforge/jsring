@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset="utf8"/>
+<link rel=icon href=img/up.png>
+<link rel=stylesheet href=css/style.css>
+</head>
+<div class="first container">
+<h2><div id=logo></div>Upload a File to IPFS</h2>
+</div>
+<br>
+<div class=container>
+
+<H3>Select a file from disk space to store it in a Local IPFS directory</H3>
+
+<form method=JS>
+1. Select a file: <input type=file>
+<br>2. store it at <input name=mfspath type=text value="" onChange="update(this.name,this.value)" placeholder="mfs path (file location)">
+<br>3. <input type=button onClick="fileUpload(this.closest('form'))" value="Upload">
+ <input type=reset value="reset">
+</form>
+<p class=results>
+Hash: <span id="hash"><a title="/ipfs/:hash" href="http://127.0.0.1:8080/ipfs/:hash%">:hash</a></span> (SHA256)
+<br>immutable path : <a href=https://gateway.ipfs.io/ipfs/:hash>https://gateway.ipfs.io/ipfs/:hash</a> (IPFS)
+<br>mutable path : <a href=http://127.0.0.1:5001/webui/#/file:mfspath>mfs:/:mfspath</a> (MFS)
+</p>
+
+</div>
+
+<script>
+  var original = ''
+  var map = []
+
+function fileUpload(form) {
+  const api_url = 'http://127.0.0.1:5001/api/v0/'
+  console.log(form.elements);
+  console.log('element[0].files:',form.elements[0].files)
+  let path = form.elements[0].value
+  let mfspath = form.elements[1].value
+  let file = form.elements[0].files[0]
+  console.log('path:',path)
+  console.log('mfspath:',mfspath)
+  console.log('file:',file)
+  var url = api_url + 'files/write?arg=' + mfspath + '&create=1&truncate=1';
+  return fetchPostFile(url, file)
+  .then( _ => hashOfMFSFilePath(mfspath) ) 
+  .then( h => { update('hash',h); return h } )
+  .catch(logError)
+}
+
+
+ function fetchPostFile(url, file) {
+     console.log('fetchPostFile input url '+url);
+     console.log('fetchPostFile input file ',file);
+     let form = new FormData();
+     form.append('file', file)   
+     return fetch(url, { method: "POST", mode: 'cors', body: form })
+ }
+
+
+ function hashOfMFSFilePath(mfspath) {
+     const api_url = 'http://127.0.0.1:5001/api/v0/'
+     console.log('hashOfMFSFilePath input mfspath '+mfspath);
+     var url = api_url + 'files/stat?arg='+mfspath+'&hash=true'
+     return fetch(url, { method: "GET", mode: 'cors' })
+	 .then( obj => obj.json() )
+	 .then( json => { console.log(json); return json.Hash} );
+ }
+
+
+ function validate(resp) {
+     if (resp.status >= 200 && resp.status < 300) {
+	 return Promise.resolve(resp)
+     }
+     return Promise.reject(new Error(resp.statusText))
+ }
+ 
+ function logError(err) { console.log(err); }
+
+
+ function callback(tag) { const result = obj => {
+	 let e = document.getElementById(tag);
+	 console.log('obj:',obj)
+   if (typeof(e.href) != 'undefined') {
+      e.innerHTML = e.href(new RegExp(':'+tag,'g'),obj)
+   }
+	 e.innerHTML = obj
+   };
+     return result
+ }
+ function update(keyword,value) {
+   map[keyword] = value
+   let e = document.getElementsByClassName('results')[0]
+   if (typeof(original) == 'undefined' || original == '' ) { 
+     original = e.innerHTML;
+   } 
+	 e.innerHTML = original
+   for (let key in map) { 
+     console.log('key: '+key+'; value: '+map[key])
+     let rex= new RegExp(':'+key,'g');
+	   e.innerHTML = e.innerHTML.replace(rex,map[key])
+   }
+   return value;
+ }
+
+</script>
+

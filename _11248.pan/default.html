@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!--
+--- 
+font-readable: Josefin Slab
+css: style.css
+---
+-->
+<!--
+font-readable: Josefin Slab
+font-readable: Special Elite
+font-readable: Open Sans
+font-readable: Georgia
+font-readable: Garamond
+font-readable: Calendas Plus
+font-readable: Henry
+font-readable: Work Sans
+font-readable: Fenix STD
+font-readable: Roboto
+font-readable: Lato
+font-readable: IBM Plex Sans
+-->
+<head>
+<meta charset="utf8"/>
+<title>$title$ ~ $author$ @ $hdate$</title>
+<meta name="description" content="$subtitle$. Today's: $abstract$; #code5: coding in html5" />
+<meta name="keywords" content="$keywords$" />
+<style>
+body {
+  background-image: linear-gradient(to right, white,lightblue);
+  background-repeat: no-repeat, repeat;
+  background-attachment: fixed;
+  background-position: bottom right, center;
+  font-family: Verdana;
+}
+.subtitle { font-size: 0.5em; }
+div {
+ font-family: {{font-readable}};
+ margin: auto;
+ padding: 1em;
+ text-align: justify;
+}
+img { max-height: 720px; padding: 1.2rem; }
+.first img { float: left; max-height: 120px !important; }
+#preview { position: fixed; float: bottom }
+#preview img { display:none }
+#thmb {
+ max-width: 50%;
+}
+</style>
+<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family={{font-readable}}">
+<link href="{{css}}" rel="stylesheet" type="text/css" media="all">
+</head>
+<body>
+<div id="preview">$if(preview)$<img src="$preview$" alt="$title$"/>$endif$</div>
+<div class="first content">
+<img id=logo src=https://cdn.statically.io/img/ipfs.blockringtm.ml/ipfs/Z5wZ9oUSpsyhALkySLMTefDHVXYgTSY8nAPCx3vxLRgKnRrdyUyd34WAKjVe2pbLGSHvfZ/code5.png>
+<h1>
+$title$<br><small class=subtitle><i>$subtitle$</i></small></h1>
+$abstract$
+</div>
+<br>
+<div class="content">
+$if(thumbnail)$<img style="float:right" id="thmb" src="$thumbnail$" alt="$title$"/>$endif$
+$body$
+</div>
+<hr>
+$keywords$
+</body>
+
+<script src=effect.js type="text/javascript">
+ alert("ahah this code is not executed !")
+</script>

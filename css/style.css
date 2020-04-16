@@ -24,3 +24,9 @@ body {
   position: stickey;
   top: 2px;
 }
+
+.footer {
+  max-width: 80%;
+  margin: auto;
+  filter: invert(80%);
+}
