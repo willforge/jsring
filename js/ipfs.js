@@ -51,15 +51,50 @@ function ipfsNamePublish(k,v) {
     return fetchGetJson(url).catch(logError)
 }
 
+function ipfsAddTextFile(file) {
+ return readAsText(file)
+ .then( buf => {
+   // curl -X POST -F file=@myfile "http://127.0.0.1:5001/api/v0/add?quiet=0&quieter=0&silent=0&progress=0&trickle=0&only-hash=1
+   //  &wrap-with-directory=0&chunker=size-262144&pin=1&raw-leaves=1
+   //  &nocopy=0&fscache=1&cid-version=0&hash=sha2-256&inline=0&inline-limit=32"
+   url = api_url + 'add?file=file.txt&cid-version=0&only-hash=1'
+   return fetchPostText(url,buf)
+   .then( resp => resp.json() )
+   .then( json => json.Hash ).catch(logError)
+ })
+ .catch(logError)
+}
+
+function getContentHash(buf) {
+ url = api_url + 'add?file=blob.data&cid-version=0&only-hash=1'
+ return fetchPostText(url,buf)
+ .then( resp => resp.json() )
+ .then( json => json.Hash ).catch(logError)
+
+}
+
+function ipfsWriteText(mfspath,buf) {
+  return createParent(mfspath)
+  .then( _ => {
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=1&truncate=1';
+    return fetchPostText(url, buf)
+    .then(consLog)
+    .then( _ => getMFSFileHash(mfspath)) 
+    .catch(logError)
+  })
+  .catch(consLog)
+}
+
+
 function ipfsWriteJson(mfspath,obj) {
   return createParent(mfspath)
   .then( _ => {
      var url = api_url + 'files/write?arg=' + mfspath + '&create=1&truncate=1';
     return fetchPostJson(url, obj)
     .then( _ => getMFSFileHash(mfspath)) 
-    .then(consLog)
+    .catch(logError)
   })
-  .catch(logError)
+  .catch(consLog)
 }
 function ipfsLogAppend(mfspath,record) {
   return createParent(mfspath)
@@ -73,6 +108,13 @@ function ipfsLogAppend(mfspath,record) {
   .catch(logError)
 }
 
+function getContentHash(buf) {
+    url = api_url + 'add?file=published.blob&cid-version=0&only-hash=0'
+    return fetchPostText(url,buf)
+    .then( resp => resp.json() )
+    .then( json => json.Hash ).catch(logError)
+}
+
 function createParent(path) {
   let dir = path.replace(new RegExp('/[^/]*$'),'');
   var url = api_url + 'files/stat?arg=' + dir + '&size=true'
@@ -83,11 +125,12 @@ function createParent(path) {
       return json;
     } else {
       // {"Message":"file does not exist","Code":0,"Type":"error"}
-      console.log(json)
       console.log('! -e '+dir);
+      console.log(json)
       url = api_url + 'files/mkdir?arg=' + dir + '&parents=true'
       return fetch(url).then(
        resp => {
+         console.log('mkdir.resp: ',resp)
          if (resp.text() == '') { // if mkdir sucessful, return hash
            var url = api_url + 'files/stat?arg=' + dir + '&size=true'
            return fetch(url).then( resp => resp.json() )
@@ -95,7 +138,8 @@ function createParent(path) {
            Promise.reject(new Error(resp.statusText))
          }
        })
-      .then ( obj => { console.log('mkdir: ',obj) })
+      .then ( obj => { console.log('mkdir: ',obj); return obj })
+      .catch(logError)
     } 
   })
   .catch(logError)
@@ -110,9 +154,18 @@ function getMFSFileSize(mfspath) {
 function getMFSFileHash(mfspath) {
    var url = api_url + 'files/stat?arg='+mfspath+'&hash=true'
    return fetch(url).then( resp => resp.json() )
-   .then( json => { return json.Hash} )
+   .then( json => {
+       if (typeof json.Hash == 'undefined') {
+         if (typeof(qmEmpty) != 'undefined') { return qmEmpty }
+         else { return undefined }
+       } else {
+         return json.Hash
+       }
+   })
    .catch(logError)
 }
+
+
 
 function getPeerId() {
      let url = api_url + 'config?&arg=Identity.PeerID&encoding=json';

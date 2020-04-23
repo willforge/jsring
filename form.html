@@ -1,19 +1,20 @@
 ---
 ---
 <!DOCTYPE html>
-<head>
+<meta charset="utf8"/>
 <link rel="shortcut icon" href="img/ipfs-form.png" type="image/png">
+<link rel=stylesheet href=css/style.css>
 <style>
 .container {
  font-size: 18px;
- margin: auto;
- max-width: 80%;
- border: 1px dashed grey;
  overflow: hidden;
 }
 </style>
 </head>
-
+<div class="first container">
+<h2><div id=logo></div>Ydentity: Self Sovereign identity</h2>
+</div>
+<br>
 <div class=container>
 <img id=photo style="float:right" src=https://api.adorable.io/avatar/256/your_peerid.png>
 <h2> Create you own sovereign identity </h2>
@@ -41,11 +42,12 @@ Hash: <span id=hash>{{site.data.ipfs.qm}}</span>
 
 <!-- https://www.jsdelivr.com/package/gh/michel47/snippets 
 <script src="https://michel47.github.io/snippets/js/essential.js" type="text/javascript"></script>
--->
-{% if jekyll.environement == 'production' %}
-<script src="https://cdn.jsdelivr.net/gh/michel47/snippets@master/js/essential.js" type="text/javascript"></script>
-{% else %}
 <script src="http://yoogle.com:8088/github.com/snippets/js/essential.js" type="text/javascript"></script>
-{% endif %}
+<!-- {% if jekyll.environement == 'production' %} -->
+<script src="https://cdn.jsdelivr.net/gh/michel47/snippets@0.6.2/js/essential.js" type="text/javascript"></script>
+<!-- {% else %} -->
+<!-- {% endif %} -->
+-->
+<script src="https://cdn.jsdelivr.net/gh/michel47/snippets@master/js/essential.js" type="text/javascript"></script>
 <script src="js/ipfs.js" type="text/javascript"></script>
 <script src="js/form.js" type="text/javascript"></script>

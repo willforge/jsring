@@ -1,3 +1,6 @@
+.dbug {
+  border: 2px dashed blue;
+}
 body {
   background-color: rgb(50,20,46);
   /*
@@ -5,6 +8,7 @@ body {
    */
 }
 
+.container img { border-radius: 50%; }
 .container {
   /*
  */
@@ -16,13 +20,30 @@ body {
   background-color: darkblue;
   background-image: linear-gradient(to top right, white, lightblue);
   opacity: 96%;
+  overflow: hidden;
 
+}
+#logo {
+  float: left;
+  padding-left: 0px;
+  padding-right: 10px;
+  margin: 0;
+  width: 140px;
+}
+#logo img {
+  display: inline;
+  top: 0;
+  height: 70px;
+  margin: 0;
+  border: 2px dashed blue;
 }
 
 .first {
   filter: grayscale(50%) invert(100%);
+  padding-top: 0px;
   position: stickey;
   top: 2px;
+  overflow: auto;
 }
 
 .footer {

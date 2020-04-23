@@ -1,4 +1,7 @@
+
+if (typeof(core) == 'undefined') {
 const core='brings'
+}
 const gw='http://127.0.0.1:8080'
 
 let tic = getTic();

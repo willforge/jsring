@@ -1,57 +1,252 @@
 ---
+github: https://willforge.github.io/jsring
 ---
 <!DOCTYPE html>
+<meta charset="utf8"/>
+<link rel=icon href=img/publish.svg>
+<link rel=stylesheet href=css/style.css>
+<style>
+.container img#avatar {
+ float: right;
+ max-width: 50%;
+}
+.led {
+ padding: 3px;
+}
+</style>
+</head>
+<div class="first container">
+<h2><div id=logo><img src=img/publish.svg></div>Publishing a file on <span id=core>coreRing™</span></h2>
+</div>
+<br>
+<!-- {% assign page_url = page.name %} -->
 
-<div>
-Your Peerid is : <span id=peerid></span>
+<div class=container>
+
+<img id=avatar src=https://api.adorable.io/avatar/256/ssi-:peerid.png alt=":peerid"> 
+<form>
+peerid: <input class="peerid" name="peerid" type=text value=":peerid" placeholder="peerid" maxlength=46 size=46 disabled> (<a href=http://127.0.0.1:5120/api/v0/config?arg=Identity.PeerID>ID</a>)
+<br>file: <input type=file name=file onChange="fileChange(this.parentNode,this.files[0])">
+<br>file hash: <input name=qm value="" size=46 disabled>
+<br>MFS path: <input name=mfspath onChange="getMFSFileHash(this.value).then(update(this.parentNode.elements['hash']))" value=/my/identity/./public.yml placeholder="file's mfs path" size=63>
+<input type=button value="store" onclick="storeFile(this.parentNode)">
+<br><span>url: <a id=url href="#"></a></span>
+<br>previous: <input name="hash" type=text value="" placeholder="hash value" size=46>
+<br>status: I [<input name="status" type=radio value="agree" placeholder="hash value"><label for="agree"> agree</label>
+<input name="status" type=radio value="disagree" placeholder="hash value"><label for="disagree"> disagree</label>]
+with the content of the file
+<br>name: <input name="name" type=name value="" placeholder="name" size=24>
+<br>at <input name="place" type=text value="" placeholder="location ?" size=16>
+<br>on <input name="date" type=date value="" placeholder="date ?">
+<br><input name="signed" type=checkbox><label for="signed"> signed</label> (<a class=peerid href=https://ipfs.io/ipns/:peerid>:peerid</a>)
+<br><input type=button value="publish" onclick="publish(this.parentNode)"><img class=led src=img/led-amber-off.png style="width: 18px">
+</form>
 
 
-
---&nbsp;<br>
-This page is located at <a href=https://willforge.github.io/jsring/publish.html>https://willforge.github.io/jsring/publish.html</a>
 </div>
 
+
+<div class="footer">
+--&nbsp;<br>
+This page is located at <a href={{page.github}}{{page.url}}>{{page.name}}</a> (<a href="http://127.0.0.1:5001/api/v0/config?arg=Addresses">addr</a>)
+</div>
+
+<script>
+   const qmEmpty = '{{site.data.ipfs.qmEmpty}}';
+//-- ----------------------------------------------
+//-- {% if jekyll.environemnt != 'production' %} --
+// host and port are defined in $IPFS_PATH/config
+   const webui = '{{site.data.ipfs.webui}}';
+//-- ----------------------------------------------
+//-- {% else %} --><!-- PRODUCTION --
+   const webui = 'http://127.0.0.1:5001';
+//-- {% endif %} -->
+   var api_url = webui + '/api/v0/'
+//-- ----------------------------------------------
+</script>
+<!-- {% if jekyll.environemnt == 'production' %} -->
+<script src="http://cdn.jsdelivr.net/gh/michel47/snippets@master/js/essential.js" type="text/javascript"></script>
+<!-- {% else %} -->
+<script src="http://cdn.jsdelivr.net/gh/michel47/snippets@master/js/essential.js" type="text/javascript"></script>
+<!-- {% endif %} -->
+<!-- local file for debug
 <script src="http://yoogle.com:8088/github.com/snippets/js/essential.js" type="text/javascript"></script>
 <script src="js/ipfs.js" type="text/javascript"></script>
+<script src="http://cdn.jsdelivr.net/gh/willforge/jsring@master/js/ipfs.js" type="text/javascript"></script>
+-->
+
+<script src="http://localhost:8088/github.com/jsring/js/ipfs.js" type="text/javascript"></script>
+
 <script>
-// host and port are defined in $IPFS_PATH/config
-{% if jekyll.environemnt == 'production' %}
-const webui = 'http://127.0.0.1:5001';
-{% else %}
-const webui = '{{site.data.ipfs.webui}}'
-{% endif %}
-const api_url = webui + '/api/v0/'
+var promises = [];
+
+function fileChange(form,file) {
+ // onChange="getFileSource(this.files[0]).then(update(this.parentNode.elements['mfspath']))"
+ return readAsText(file)
+ .then( content => {
+   file.content = content
+   console.log('file: ',file)
+
+   let source = getContentSource(content);
+   form.elements['mfspath'].value = source;
+   let hash = getContentHash(content)
+   .then( hash => {
+      form.elements['qm'].value = hash; return hash
+   })
+   .catch(logError)
+   return content
+ }
+ )
+ .catch(logError);
+}
+
+function storeFile(form) {
+  console.dir('form: ',form)
+  let mfspath = form.elements['mfspath'].value;
+  let file = form.elements['file'].files[0]
+  if (typeof(file.content) != 'undefined') {
+    return ipfsWriteText(mfspath,file.content)
+    .then( hash => { form.elements['hash'].value = hash })
+    .then( _ => {
+      e = document.getElementById('url')
+      console.log('e :',e)
+      e.href = webui+'/#/files'+mfspath
+      e.innerHTML = 'mfs:/files'+mfspath
+    })
+    .catch(logError)
+  } else {
+    return Promise.reject(new Error('no content'))
+  }
+  
+}
+
+function getFileSource(file) {
+  console.log('file: ',file)
+  return readAsText(file)
+  .then(getContentSource)
+  .catch(logError)
+}
+
+function load(e) {
+    console.log('load: ',e); 
+    return new Promise(function(resolve, reject) {
+        e.onload = resolve
+        e.onerror = reject
+    });
+}
+load(window).then( _ => { // on window load compute the hash of initial mfspath's value
+   form = document.getElementsByTagName('form')[0];
+   getMFSFileHash(form.elements['mfspath'].value).then(update(form.elements['hash'])).catch(logError)
+}).catch(logError)
+
+function readAsText(file) {
+    return new Promise(function(resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function() {
+            resolve(reader.result);
+        }
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
+}
+
+
+function getFileKeywords(file) {
+  return readAsText(file)
+  .then(kwExtract)
+  .catch(logError)
+}
+
+function getContentSource(buf) {
+  const rex = /\$Source: (.*)\$/;
+  let res = buf.match(rex)
+  let source = (res) ? res[1] : '';
+  console.log('source: ',source)
+  return source
+}
+function kwExtract(buf) {
+ // TODO: not yet implemented
+ return map = { "buffer": buf, "source":undefined }
+}
 
 // calling the function and update the id=peerid
-getPeerID().then(callback('peerid'))
-
+getPeerId().then(resolve('peerid'))
 
 function resolve(tag) {
   return x => { callback(tag,x); return x }
 }
-function callback(tag,peerid) {
-    let e = document.getElementById(tag);
-    e.innerHTML = peerid;
+function update(e) {
+ return val => { e.value = val };
+}
+function updateLed(color) {
+  e = document.getElementsByClassName('led')[0];
+  e.src='img/led-'+color+'-on.png';
+}
+function callback(key,value) {
+    let h = (typeof(value) == 'undefined') ? 'QmXXX' : value;
+    let elements = document.getElementsByClassName(key)
+    for (let i=0; i<elements.length; i++) {
+      let e = elements[i];
+      if (typeof(e.href) != 'undefined') {
+         e.href = e.href.replace(RegExp(':'+key),h);
+      } else if (typeof(e.value) != 'undefined') {
+        e.value = e.value.replace(RegExp(':'+key,'g'),h);
+      }
+      if (typeof(e.innerHTML) != 'undefined') {
+        e.innerHTML = e.innerHTML.replace(RegExp(':'+key,'g'),h);
+      }
+    }
+  return value
+
 }
 
-
-function getPeerID() {
-  var url = api_url + 'config?&arg=Identity.PeerID&encoding=json'
-  console.log(url);
-  return fetchjson(url)
-     .then( obj => { return Promise.resolve(obj.Value) })
-     .catch(error)
+function publish(form) {
+  let mfspath = form.elements['mfspath'].value
+  let bname = mfspath.replace(RegExp('.*/([^/]+)/?'),"$1")
+  let hash = form.elements['qm'].value
+  let record = getQuery(form)
+  ipfsLogAppend('/var/logs/'+bname+'.log',record).then(updateLed('amber'))
+  return ipfsPublish(mfspath)
+  .then(obj => { console.log('green: ',obj); updateLed('green'); return obj } )
+  .catch(obj => { console.log('red: ',obj); updateLed('red'); return obj } )
 }
 
-function fetchjson(url) {
-  return fetch(url, { method: "GET"} ).then(validate).then( resp => resp.json() )
+function load() {
+    return new Promise(function(resolve, reject) {
+        window.onload = resolve;
+    });
 }
 
-function validate(resp) {
-  if (resp.status >= 200 && resp.status < 300) {
-    return Promise.resolve(resp)
-  }
-  return Promise.reject(new Error(resp.statusText))
+function readFile(form,callback) {
+       console.log('readFile : form.elements ',form.elements);
+       let fakepath = form.elements['file'].value
+       console.log('readFile : fakepath ',fakepath)
+       let mfspath = form.elements['mfspath'].value
+       console.log('readFile : mfspath ',mfspath)
+       let file = form.elements['file'].files[0]
+       console.log('readFile : element[file].files ',form.elements['file'].files)
+       console.log('readFile : file',file)
+       
+       let reader = new FileReader();
+       reader.onload = event => {
+          const content = event.target.result;
+          console.log('readFile : content ',content)
+          return callback(content)
+       }
+       //reader.readAsText(file,'UTF-8') 
+       reader.readAsBinaryString(file)
+       //reader.readAsDataURL(file);
 }
-function error(err) { console.log(err); }
+
+/*
+function getStuffAsync(param) {
+    return new Promise(function(resolve, reject) {
+        getStuff(param, function(err, data) {
+            if (err !== null) reject(err);
+            else resolve(data);
+        });
+    });
+}
+*/
+
 </script>
