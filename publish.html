@@ -23,15 +23,18 @@ github: https://willforge.github.io/jsring
 
 <div class=container>
 
+<!--
 <img id=avatar src=https://api.adorable.io/avatar/256/ssi-:peerid.png alt=":peerid"> 
+-->
+<img id=avatar src=https://robohash.org/ssi-:peerid.png alt=":peerid"> 
 <form>
-peerid: <input class="peerid" name="peerid" type=text value=":peerid" placeholder="peerid" maxlength=46 size=46 disabled> (<a href=http://127.0.0.1:5120/api/v0/config?arg=Identity.PeerID>ID</a>)
+peerid: <input class="peerid" name="peerid" type=text value=":peerid" placeholder="peerid" maxlength=46 size=47 disabled> (<a href=http://127.0.0.1:5120/api/v0/config?arg=Identity.PeerID>ID</a>)
 <br>file: <input type=file name=file onChange="fileChange(this.parentNode,this.files[0])">
-<br>file hash: <input name=qm value="" size=46 disabled>
+<br>file hash: <input name=qm value="" size=47 disabled>
 <br>MFS path: <input name=mfspath onChange="getMFSFileHash(this.value).then(update(this.parentNode.elements['hash']))" value=/my/identity/./public.yml placeholder="file's mfs path" size=63>
 <input type=button value="store" onclick="storeFile(this.parentNode)">
 <br><span>url: <a id=url href="#"></a></span>
-<br>previous: <input name="hash" type=text value="" placeholder="hash value" size=46>
+<br>previous: <input name="hash" type=text value="" placeholder="hash value" size=47>
 <br>status: I [<input name="status" type=radio value="agree" placeholder="hash value"><label for="agree"> agree</label>
 <input name="status" type=radio value="disagree" placeholder="hash value"><label for="disagree"> disagree</label>]
 with the content of the file
@@ -85,15 +88,17 @@ function fileChange(form,file) {
  return readAsText(file)
  .then( content => {
    file.content = content
-   console.log('file: ',file)
+   console.log('readAsText.file: ',file)
 
    let source = getContentSource(content);
    form.elements['mfspath'].value = source;
    let hash = getContentHash(content)
    .then( hash => {
-      form.elements['qm'].value = hash; return hash
+      console.log('fileChange...hash: '+hash)
+      form.elements['qm'].value = hash;
+      return hash
    })
-   .catch(logError)
+   .catch(console.log)
    return content
  }
  )
@@ -127,28 +132,10 @@ function getFileSource(file) {
   .catch(logError)
 }
 
-function load(e) {
-    console.log('load: ',e); 
-    return new Promise(function(resolve, reject) {
-        e.onload = resolve
-        e.onerror = reject
-    });
-}
 load(window).then( _ => { // on window load compute the hash of initial mfspath's value
    form = document.getElementsByTagName('form')[0];
-   getMFSFileHash(form.elements['mfspath'].value).then(update(form.elements['hash'])).catch(logError)
-}).catch(logError)
-
-function readAsText(file) {
-    return new Promise(function(resolve, reject) {
-        const reader = new FileReader();
-        reader.onload = function() {
-            resolve(reader.result);
-        }
-        reader.onerror = reject;
-        reader.readAsText(file);
-    });
-}
+   return getMFSFileHash(form.elements['mfspath'].value).then(update(form.elements['hash'])).catch(console.log())
+}).catch(console.log())
 
 
 function getFileKeywords(file) {
