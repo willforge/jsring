@@ -69,6 +69,7 @@ function getContentHash(buf) {
  url = api_url + 'add?file=blob.data&cid-version=0&only-hash=1'
  return fetchPostText(url,buf)
  .then( resp => resp.json() )
+ .then( consLog )
  .then( json => json.Hash ).catch(logError)
 
 }
@@ -157,7 +158,7 @@ function getMFSFileHash(mfspath) {
    .then( json => {
        if (typeof json.Hash == 'undefined') {
          if (typeof(qmEmpty) != 'undefined') { return qmEmpty }
-         else { return undefined }
+         else { return 'QmYYY' }
        } else {
          return json.Hash
        }
