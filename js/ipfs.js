@@ -1,7 +1,9 @@
 // ipfs routines
+console.log('ipfs.js: v1.0');
 
 if (typeof(api_url) == 'undefined') {
 var api_url = 'http://127.0.0.1:5001/api/v0/'
+console.log('api_url: ',api_url)
 }
 
 const core=getCoreName(document.location.href)
@@ -66,11 +68,15 @@ function ipfsAddTextFile(file) {
 }
 
 function getContentHash(buf) {
- url = api_url + 'add?file=blob.data&cid-version=0&only-hash=1'
+ console.log('getContentHash')
+ url = api_url + 'add?file=blob.data&cid-version=0&hash-only=0'
+ console.log('url: '+url);
  return fetchPostText(url,buf)
+ .then( consLog )
  .then( resp => resp.json() )
  .then( consLog )
- .then( json => json.Hash ).catch(logError)
+ .then( json => json.Hash )
+ .catch(logError)
 
 }
 
@@ -107,13 +113,6 @@ function ipfsLogAppend(mfspath,record) {
   .then( _ => getMFSFileHash(mfspath)) 
   })
   .catch(logError)
-}
-
-function getContentHash(buf) {
-    url = api_url + 'add?file=published.blob&cid-version=0&only-hash=0'
-    return fetchPostText(url,buf)
-    .then( resp => resp.json() )
-    .then( json => json.Hash ).catch(logError)
 }
 
 function createParent(path) {
