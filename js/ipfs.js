@@ -11,33 +11,77 @@ const pp = core['dir'].substr(1,2);
 document.getElementById('core').innerHTML = core.name
 console.log('core: ',core)
 
-let peerid = getPeerId().then(resolve('peerid')); // get peerId promise
+let peerid = getPeerId()
+.then(id => { peerid = (typeof(id) == 'undefined') ? 'QmYourIPFSisNotRunning' : id; return peerid })
+.then( updatePromise('peerid') )
+.then( peerid => {
+  let s = peerid.substr(0,7);
+  console.log('s: ',s);
+  replaceHTML('shortid',s)
+})
+.catch(logError);
+; // get peerId promise
+function updatePromise(name) { return value => {
+   if (typeof(callback) != 'undefined') {
+      callback(name,value)
+   } else {
+      let elements = document.getElementsByClassName('container');
+      for (let i=0; i<elements.length; i++) {
+         let e = elements[i];
+         e.innerHTML = e.innerHTML.replace(new RegExp(':'+name,'g'),value)
+      }
+   }
+   return value;
+ }
+}
+function replaceHTML(name,value) {
+   let elements = document.getElementsByClassName(name);
+   for (let i=0; i<elements.length; i++) {
+      let e = elements[i];
+      /* assign outerHTML doesn't seem to work directly */
+      /*
+      e.insertAdjacentHTML('beforeBegin', e.outerHTML.replace(new RegExp(':'+name,'g'),value))
+      console.dir(e.parentElement)
+      e.parentElement.removeChild(e)
+      console.log('outer: '+e.outerHTML); /* old element still exist !
 
-function resolve(tag) { return d => callback(tag,d) }
-function callback(key,value) {
-  let elements = document.getElementsByClassName('container');
-  for (let i=0; i<elements.length; i++) {
-    let e = elements[i];
-    e.innerHTML = e.innerHTML.replace(new RegExp(':'+key,'g'),value)
-  }
-  return value;
+      */
+      for (let a of ['href','title','src','innerHTML','alt']) {
+         if (typeof(e[a]) != 'undefined' && e[a].match(name)) {
+            console.log(a+': ',e[a])
+            e[a] = e[a].replace(new RegExp(':'+name,'g'),value)
+         
+         }
+      }
+   }
 }
 
+
 function ipfsPublish(pubpath) {
+  let parent;
+  let fname
+  if (pubpath.match('/./')) {
   [parent,fname] = pubpath.split('/./')
+  } else {
+    let p = pubpath.lastIndexOf('/')
+    console.log('p: '+p)
+    parent = pubpath.substr(0,p)
+    fname = pubpath.substr(p+1)
+  }
   console.log('parent: ',parent);
   console.log('fname: ',fname);
   // get hash of parent
   return getMFSFileHash(parent)
   .then( hash => { // publish hash with folder name
     let record = hash+': '+parent;
+    console.log('record: ',record)
     let indexlogf = core.dir+'/published/'+core.index
     return ipfsLogAppend(indexlogf,record)
     .then(
       getMFSFileHash(core.dir) // get hash of POR
       .then( hash => { // publish under self/peerid
        return ipfsNamePublish('self','/ipfs/'+hash)
-       .then(consLog)
+       .then(consLog('ipfsNamePublish'))
        .catch(logError)
       })
       .catch(logError)
@@ -53,6 +97,23 @@ function ipfsNamePublish(k,v) {
     return fetchGetJson(url).catch(logError)
 }
 
+function ipfsRmMFSFile(mfspath) {
+   url = api_url + 'files/rm?arg=mfspath'
+   return fetchGetText(url)
+   .then( resp => resp.json() )
+   .catch(logError)
+}
+
+function ipfsAddBinaryFile(file) {
+ return readAsBinaryString(file)
+ .then( buf => {
+   url = api_url + 'add?file=file.txt&cid-version=0'
+   return fetchPostBinary(url,buf)
+   .then( resp => resp.json() )
+   .then( json => json.Hash ).catch(logError)
+ })
+ .catch(logError)
+}
 function ipfsAddTextFile(file) {
  return readAsText(file)
  .then( buf => {
@@ -68,46 +129,53 @@ function ipfsAddTextFile(file) {
 }
 
 function getContentHash(buf) {
- console.log('getContentHash')
- url = api_url + 'add?file=blob.data&cid-version=0&hash-only=0'
+ url = api_url + 'add?file=blob.data&cid-version=0&hash-only=1'
  console.log('url: '+url);
- return fetchPostText(url,buf)
- .then( consLog )
+ return fetchPostBinary(url,buf)
  .then( resp => resp.json() )
- .then( consLog )
+ .then(consLog('getContentHash'))
  .then( json => json.Hash )
  .catch(logError)
 
 }
 
-function ipfsWriteText(mfspath,buf) {
+function ipfsWriteBinary(mfspath,buf) {
   return createParent(mfspath)
   .then( _ => {
-     var url = api_url + 'files/write?arg=' + mfspath + '&create=1&truncate=1';
-    return fetchPostText(url, buf)
-    .then(consLog)
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=true';
+    return fetchPostBinary(url, buf)
     .then( _ => getMFSFileHash(mfspath)) 
     .catch(logError)
   })
-  .catch(consLog)
+  .catch(consLog('ipfsWriteBinary.createParent'))
+}
+function ipfsWriteText(mfspath,buf) {
+  return createParent(mfspath)
+  .then( _ => {
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=true';
+    return fetchPostText(url, buf)
+    .then( _ => getMFSFileHash(mfspath)) 
+    .catch(logError)
+  })
+  .catch(consLog('ipfsWriteText.createParent'))
 }
 
 
 function ipfsWriteJson(mfspath,obj) {
   return createParent(mfspath)
   .then( _ => {
-     var url = api_url + 'files/write?arg=' + mfspath + '&create=1&truncate=1';
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=true';
     return fetchPostJson(url, obj)
     .then( _ => getMFSFileHash(mfspath)) 
     .catch(logError)
   })
-  .catch(consLog)
+  .catch(consLog('ipfsWriteJson.createParent'))
 }
 function ipfsLogAppend(mfspath,record) {
   return createParent(mfspath)
   .then( _ => getMFSFileSize(mfspath))
   .then( offset => {
-    var url = api_url + 'files/write?arg=' + mfspath + '&create=1&offset='+offset;
+    var url = api_url + 'files/write?arg=' + mfspath + '&raw-leave=true&trickle=true&cid-base=base58btc&create=true&offset='+offset;
     console.log(mfspath,': offset=',offset);
     return fetchPostText(url, record+"\n")
   .then( _ => getMFSFileHash(mfspath)) 
@@ -147,13 +215,15 @@ function createParent(path) {
 
 function getMFSFileSize(mfspath) {
   var url = api_url + 'files/stat?arg=' + mfspath + '&size=true'
-  return fetch(url).then( resp => resp.json() )
+  return fetch(url)
+  .then( resp => resp.json() )
   .then( json => { return (typeof json.Size == 'undefined') ? 0 : json.Size } )
-  .catch(consLog)
+  .catch(consLog('getMFSFileSize'))
 }
 function getMFSFileHash(mfspath) {
    var url = api_url + 'files/stat?arg='+mfspath+'&hash=true'
-   return fetch(url).then( resp => resp.json() )
+   return fetch(url)
+   .then( resp => resp.json() )
    .then( json => {
        if (typeof json.Hash == 'undefined') {
          if (typeof(qmEmpty) != 'undefined') { return qmEmpty }
@@ -176,7 +246,7 @@ function getPeerId() {
 }
 
 function getCoreName(url) {
-  console.log('url: '+url)
+  console.log('getCoreName.url: '+url)
   let core = {};
   if (url.match('holo') ) {
     core['name'] = 'holoRings'

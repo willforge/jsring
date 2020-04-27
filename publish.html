@@ -6,17 +6,36 @@ github: https://willforge.github.io/jsring
 <link rel=icon href=img/publish.svg>
 <link rel=stylesheet href=css/style.css>
 <style>
-.container img#avatar {
- float: right;
+#avatar img {
+ display: block;
+ position: absolute;
+ right: 1px;
+ padding: 0;
+ margin-right: 0;
+ z-index: -2;
+ 
  max-width: 50%;
+ border: 1px solid red;
 }
 .led {
  padding: 3px;
 }
+form {
+  overflow: visible;
+}
+.ext {
+ height: 1rem;
+}
+#qmlink {
+ display: none;
+}
+img:hover {
+  transform: scaleX(-1);
+}
 </style>
 </head>
 <div class="first container">
-<h2><div id=logo><img src=img/publish.svg></div>Publishing a file on <span id=core>coreRing™</span></h2>
+<h2><div id=logo><img class="circle" src=img/publish.svg></div>Publishing a file on <span id=core>coreRing™</span></h2>
 </div>
 <br>
 <!-- {% assign page_url = page.name %} -->
@@ -26,12 +45,13 @@ github: https://willforge.github.io/jsring
 <!--
 <img id=avatar src=https://api.adorable.io/avatar/256/ssi-:peerid.png alt=":peerid"> 
 -->
-<img id=avatar src=https://robohash.org/ssi-:peerid.png alt=":peerid"> 
+<div id=avatar><img class="peerid shortid" src=https://robohash.org/ssi-:peerid.png alt=":shortid"></div>
+<span id=api><b>api</b>: :api_url</span>
 <form>
-peerid: <input class="peerid" name="peerid" type=text value=":peerid" placeholder="peerid" maxlength=46 size=47 disabled> (<a href=http://127.0.0.1:5120/api/v0/config?arg=Identity.PeerID>ID</a>)
+<b>peerid</b>: <input class="peerid" name="peerid" type=text value=":peerid" placeholder="peerid" maxlength=46 size=47 disabled> (<a class=shortid title=":shortid" href=http://127.0.0.1:5001/api/v0/config?arg=Identity.PeerID>ID</a>)
 <br>file: <input type=file name=file onChange="fileChange(this.parentNode,this.files[0])">
-<br>file hash: <input name=qm value="" size=47 disabled>
-<br>MFS path: <input name=mfspath onChange="getMFSFileHash(this.value).then(update(this.parentNode.elements['hash']))" value=/my/identity/./public.yml placeholder="file's mfs path" size=63>
+<br>file hash: <input name=qm value="" size=47 disabled> <a id=qmlink class=qm href=http://127.0.0.1:8080/ipfs/:qm><img class=ext src=img/extlink.png></a>
+<br>MFS path: <input name=mfspath onChange="pathChange(this.parentNode,this.value)" value=/my/identity/./public.yml placeholder="file's mfs path" size=63>
 <input type=button value="store" onclick="storeFile(this.parentNode)">
 <br><span>url: <a id=url href="#"></a></span>
 <br>previous: <input name="hash" type=text value="" placeholder="hash value" size=47>
@@ -41,8 +61,10 @@ with the content of the file
 <br>name: <input name="name" type=name value="" placeholder="name" size=24>
 <br>at <input name="place" type=text value="" placeholder="location ?" size=16>
 <br>on <input name="date" type=date value="" placeholder="date ?">
-<br><input name="signed" type=checkbox><label for="signed"> signed</label> (<a class=peerid href=https://ipfs.io/ipns/:peerid>:peerid</a>)
+<br><input name="signed" type=checkbox><label for="signed"> signed</label>
+(<a class="peerid shortid" href=https://ipfs.io/ipns/:peerid>:shortid</a>)
 <br><input type=button value="publish" onclick="publish(this.parentNode)"><img class=led src=img/led-amber-off.png style="width: 18px">
+<br><span>public url: <a id=purl href="#"><a></span>
 </form>
 
 
@@ -71,7 +93,7 @@ This page is located at <a href={{page.github}}{{page.url}}>{{page.name}}</a> (<
 <!-- {% if jekyll.environemnt == 'production' %} -->
 <script src="https://cdn.jsdelivr.net/gh/michel47/snippets@master/js/essential.js" type="text/javascript"></script>
 <!-- {% else %} -->
-<script src="http://yoogle.com:8088/github.com/snippets/js/essential.js" type="text/javascript"></script>
+<script src="http://localhost:8088/github.com/snippets/js/essential.js" type="text/javascript"></script>
 <!-- {% endif %} -->
 <!-- local file for debug
 <script src="https://cdn.jsdelivr.net/gh/michel47/snippets@master/js/essential.js" type="text/javascript"></script>
@@ -84,8 +106,35 @@ This page is located at <a href={{page.github}}{{page.url}}>{{page.name}}</a> (<
 <script>
 var promises = [];
 
+   replaceInElements('api','innerHTML','api_url',api_url)
+/*
+// calling the function and update the id=peerid
+// done in ipfs.js
+getPeerId().then(updateAll('peerid'))
+*/
+
+load(window).then( _ => { // on window load compute the hash of initial mfspath's value
+   console.log('// window loaded')
+   form = document.getElementsByTagName('form')[0];
+   inipath = form.elements['mfspath'].value
+   console.log('initial path: ',inipath)
+   return getMFSFileHash(inipath)
+   .then(consLog('load.hash.0: '))
+   .then( updateValue(form.elements['hash']) )
+   .then(consLog('load.hash.1: '))
+   .catch(logError)
+}).catch(consLog('load'))
+
+
+/*
+function callback(obj) {
+  console.log('callback: ',obj)
+  console.log('callback.this: ',this)
+}
+*/
+
 function fileChange(form,file) {
- // onChange="getFileSource(this.files[0]).then(update(this.parentNode.elements['mfspath']))"
+ // onChange="getFileSource(this.files[0]).then(assign(this.parentNode.elements['mfspath'].value))"
  return readAsText(file)
  .then( content => {
    file.content = content
@@ -93,32 +142,58 @@ function fileChange(form,file) {
 
    let source = getContentSource(content);
    form.elements['mfspath'].value = source;
-   console.log('debug')
+   document.getElementById('url').innerHTML = 'file://...'
    let promise = getContentHash(content)
    .then( hash => {
-      console.log('fileChange...hash: '+hash)
+      file.hash = hash;  return hash;
       form.elements['qm'].value = hash;
+      replaceInElements('qmlink','href','qm',hash);
+      document.getElementById('qmlink').style.display = 'inline';
+      let e = document.getElementById('url')
+      e.href = webui+'/webui/#/explore/ipfs/'+hash;
+      e.innerHTML = 'dweb:/ipfs/'+hash;
       return hash
    })
-   .catch(consLog)
-   console.log(promise)
+   .catch(logError)
    return content
  }
  )
  .catch(logError);
 }
 
+function pathChange(form,mfspath) {
+ // onChange="getMFSFileHash(this.value).then(assign(this.parentNode.elements['hash'].value))"
+ return getMFSFileHash(mfspath)
+ .then( _ => {
+    e = document.getElementById('url')
+    e.href = webui+'/webui/#/files'+mfspath
+    e.innerHTML = 'mfs:/files'+mfspath
+ })
+ .then( h => { form.elements['hash'].value = h; return h })
+ .catch(logError)
+}
+
 function storeFile(form) {
-  console.dir('form: ',form)
+  console.log('storeFile: ',form)
   let mfspath = form.elements['mfspath'].value;
   let file = form.elements['file'].files[0]
-  if (typeof(file.content) != 'undefined') {
-    return ipfsWriteText(mfspath,file.content)
-    .then( hash => { form.elements['hash'].value = hash })
+  if (typeof(file.hash) != 'undefined') {
+    return ipfsRmMFSFile(mfspath)
+    .then(
+       return ipfsCpMFSFile(mfspath,'/ipfs/'+file.hash)
+    )
     .then( _ => {
       e = document.getElementById('url')
-      console.log('e :',e)
-      e.href = webui+'/#/files'+mfspath
+      e.href = webui+'/webui/#/files'+mfspath
+      e.innerHTML = 'mfs:/files'+mfspath
+    })
+    .catch(logError)
+  } else if (typeof(file.content) != 'undefined') {
+    return ipfsWriteText(mfspath,file.content)
+    .then( hash => { form.elements['hash'].value = hash; console.log('storeFile.hash: '+hash); return hash })
+    .then( _ => {
+      e = document.getElementById('url')
+      e.href = webui+'/webui/#/files'+mfspath
       e.innerHTML = 'mfs:/files'+mfspath
     })
     .catch(logError)
@@ -134,11 +209,6 @@ function getFileSource(file) {
   .then(getContentSource)
   .catch(logError)
 }
-
-load(window).then( _ => { // on window load compute the hash of initial mfspath's value
-   form = document.getElementsByTagName('form')[0];
-   return getMFSFileHash(form.elements['mfspath'].value).then(update(form.elements['hash'])).catch(console.log())
-}).catch(console.log())
 
 
 function getFileKeywords(file) {
@@ -159,28 +229,93 @@ function kwExtract(buf) {
  return map = { "buffer": buf, "source":undefined }
 }
 
-// calling the function and update the id=peerid
-getPeerId().then(resolve('peerid'))
 
-function resolve(tag) {
-  return x => { callback(tag,x); return x }
+function updateValue(e) {
+ return val => { e.value = val; return val };
 }
-function update(e) {
- return val => { e.value = val };
+function updateElement(e,name,what) {
+ return val => { e.parentNode.elements[name][what] = val };
+}
+function updateTags(name,what) {
+   return val => {
+      var elements = document.getElementsByClassName(name);
+      for (let i=0; i<elements.length; i++) {
+         let e = elements[i];
+         if (typeof(e[what]) != 'undefined') {
+            e[what]= e[what].replace(new RegExp(':'+name,'g'),val)
+         }
+      }
+      return val;
+   }
+}
+
+function updateTag(name,what) {
+  var e = document.getElementsByClassName(name)[0];
+  return val => { e[what]= val };
 }
 function updateLed(color) {
   e = document.getElementsByClassName('led')[0];
   e.src='img/led-'+color+'-on.png';
 }
-function callback(key,value) {
-    let h = (typeof(value) == 'undefined') ? 'QmXXX' : value;
+function updateHTML(tag,name) {
+   return val => {
+      console.log('updateHTML('+tag+','+name+'):')
+      let elements = document.getElementsByClassName(tag)
+         if (elements.length == 0) {
+            elements = document.getElementsByTagName(tag)
+         }
+      let e = document.getElementById(tag)
+      if (typeof(e) != 'undefined') {
+         elements.push(e)
+      }
+      for (let i; i < elements.length; i++) {
+         let e = elements[i];
+         console.log('updateHTML: i='+i+' ',e)
+         e.innerHTML = e.innerHTML.replace(RegExp(':'+name,'g'),val)
+      }
+      return val
+   }
+}
+
+function updateElements(tag,what) {
+  return x => { replaceInElements(tag,what,tag,x); return x }
+}
+
+function replaceInElements(tag,what,name,value) {
+    let e = document.getElementById(tag);
+    if (typeof(e) != 'undefined') {
+       console.log('replaceInElement.'+what,e,'w/',value)
+       if (typeof(e[what]) != 'undefined') {
+         e[what] = e[what].replace(RegExp(':'+name,'g'),value)
+       }
+    }
+    let elements = Array.from(document.getElementsByClassName(tag));
+    if (elements.length == 0) {
+       elements = document.getElementsByTagName(tag)
+    }
+    for (let i; i < elements.length; i++) {
+       let e = elements[i];
+       console.log('replaceInElements: i='+i+' ',e)
+       if (typeof(e[what]) != 'undefined') {
+         e[what] = e[what].replace(RegExp(':'+name,'g'),val)
+       }
+    }
+}
+function updateAll(tag) {
+  return x => { replaceAll(tag,x); return x }
+}
+function replaceAll(key,value) {
+    let h = (typeof(value) == 'undefined') ? 'QmYourIPFSisNotRunning' : value;
     let elements = document.getElementsByClassName(key)
     for (let i=0; i<elements.length; i++) {
       let e = elements[i];
+      console.log('replaceAll: updating '+key+'='+value+' for:',e)
       if (typeof(e.href) != 'undefined') {
          e.href = e.href.replace(RegExp(':'+key),h);
       } else if (typeof(e.value) != 'undefined') {
         e.value = e.value.replace(RegExp(':'+key,'g'),h);
+      } else if (typeof(e.src) != 'undefined') {
+        e.src = e.src.replace(RegExp(':'+key,'g'),h);
       }
       if (typeof(e.innerHTML) != 'undefined') {
         e.innerHTML = e.innerHTML.replace(RegExp(':'+key,'g'),h);
@@ -197,16 +332,12 @@ function publish(form) {
   let record = getQuery(form)
   ipfsLogAppend('/var/logs/'+bname+'.log',record).then(updateLed('amber'))
   return ipfsPublish(mfspath)
+  .then( obj => { console.log('published: ',obj); return obj } )
   .then(obj => { console.log('green: ',obj); updateLed('green'); return obj } )
   .catch(obj => { console.log('red: ',obj); updateLed('red'); return obj } )
 }
 
-function load() {
-    return new Promise(function(resolve, reject) {
-        window.onload = resolve;
-    });
-}
-
+/*
 function readFile(form,callback) {
        console.log('readFile : form.elements ',form.elements);
        let fakepath = form.elements['file'].value
@@ -228,7 +359,6 @@ function readFile(form,callback) {
        //reader.readAsDataURL(file);
 }
 
-/*
 function getStuffAsync(param) {
     return new Promise(function(resolve, reject) {
         getStuff(param, function(err, data) {

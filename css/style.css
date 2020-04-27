@@ -8,7 +8,7 @@ body {
    */
 }
 
-.container img { border-radius: 50%; }
+img.circle { border-radius: 50%; }
 .container {
   /*
  */
