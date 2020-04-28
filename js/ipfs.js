@@ -6,29 +6,41 @@ var api_url = 'http://127.0.0.1:5001/api/v0/'
 console.log('api_url: ',api_url)
 }
 
+// detecte the core ...
 const core=getCoreName(document.location.href)
 const pp = core['dir'].substr(1,2);
 document.getElementById('core').innerHTML = core.name
 console.log('core: ',core)
 
+// get the peer id ...
 let peerid = getPeerId()
 .then(id => { peerid = (typeof(id) == 'undefined') ? 'QmYourIPFSisNotRunning' : id; return peerid })
-.then( updatePromise('peerid') )
+.then( updateByName('container','peerid') )
+.then( updatePeerId )
 .then( peerid => {
   let s = peerid.substr(0,7);
   console.log('s: ',s);
   replaceHTML('shortid',s)
 })
 .catch(logError);
-; // get peerId promise
-function updatePromise(name) { return value => {
+
+function updatePeerId(id) { 
+  let e = document.getElementsByTagName('form')[0].elements['peerid'];
+  console.log('peerid: '+id)
+  console.log(e.outerHTML)
+  e.value = e.value.replace(new RegExp(':peerid','g'),id)
+  return id
+}
+
+function updateByName(where,name) { return value => {
    if (typeof(callback) != 'undefined') {
       callback(name,value)
    } else {
-      let elements = document.getElementsByClassName('container');
+      let elements = document.getElementsByClassName(where);
       for (let i=0; i<elements.length; i++) {
          let e = elements[i];
-         e.innerHTML = e.innerHTML.replace(new RegExp(':'+name,'g'),value)
+         e.insertAdjacentHTML('beforeEnd', e.innerHTML.replace(new RegExp(':'+name,'g'),value))
+         //console.log(e.innerHTML)
       }
    }
    return value;
@@ -97,12 +109,6 @@ function ipfsNamePublish(k,v) {
     return fetchGetJson(url).catch(logError)
 }
 
-function ipfsRmMFSFile(mfspath) {
-   url = api_url + 'files/rm?arg=mfspath'
-   return fetchGetText(url)
-   .then( resp => resp.json() )
-   .catch(logError)
-}
 
 function ipfsAddBinaryFile(file) {
  return readAsBinaryString(file)
@@ -139,20 +145,29 @@ function getContentHash(buf) {
 
 }
 
-function ipfsWriteBinary(mfspath,buf) {
+function ipfsRmMFSFile(mfspath) {
+   url = api_url + 'files/rm?arg=mfspath'
+   return fetchGetText(url)
+   .then( resp => resp.json() )
+   .catch(logError)
+}
+function ipfsWriteContent(mfspath,buf) {
+// truncate doesn't work !
+// so do a rm before
   return createParent(mfspath)
+  .then(ipfsRmMFSFile(mfspath))
   .then( _ => {
-     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=true';
+    var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
     return fetchPostBinary(url, buf)
     .then( _ => getMFSFileHash(mfspath)) 
     .catch(logError)
-  })
-  .catch(consLog('ipfsWriteBinary.createParent'))
+   })
+   .catch(consLog('ipfsWriteContent'))
 }
 function ipfsWriteText(mfspath,buf) {
   return createParent(mfspath)
   .then( _ => {
-     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=true';
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
     return fetchPostText(url, buf)
     .then( _ => getMFSFileHash(mfspath)) 
     .catch(logError)
@@ -164,7 +179,37 @@ function ipfsWriteText(mfspath,buf) {
 function ipfsWriteJson(mfspath,obj) {
   return createParent(mfspath)
   .then( _ => {
-     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=true';
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
+    return fetchPostJson(url, obj)
+
+}
+
+function ipfsWriteBinary(mfspath,buf) { // truncate doesn't work !
+  return createParent(mfspath)
+  .then( _ => {
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
+    return fetchPostBinary(url, buf)
+    .then( _ => getMFSFileHash(mfspath)) 
+    .catch(logError)
+  })
+  .catch(consLog('ipfsWriteBinary.createParent'))
+}
+function ipfsWriteText(mfspath,buf) {
+  return createParent(mfspath)
+  .then( _ => {
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
+    return fetchPostText(url, buf)
+    .then( _ => getMFSFileHash(mfspath)) 
+    .catch(logError)
+  })
+  .catch(consLog('ipfsWriteText.createParent'))
+}
+
+
+function ipfsWriteJson(mfspath,obj) {
+  return createParent(mfspath)
+  .then( _ => {
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
     return fetchPostJson(url, obj)
     .then( _ => getMFSFileHash(mfspath)) 
     .catch(logError)
