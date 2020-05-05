@@ -1,0 +1,326 @@
+<html>
+    <head>
+    	<style type="text/css">
+	 #name_link {
+	     background-color:lightcyan;
+	     color:#0000FF;
+	     cursor: pointer;
+	 }
+	 .header {
+	     border-radius: 15px;
+	     padding: 10px;
+	     margin:10px;
+	     text-align: center;
+	     background:#0A6BB3;
+	     font-weight: bold;
+	     color:white;
+	     font-size: 30px;
+	     font:"Fira Sans", serif;
+	 }
+
+	 #block_right {
+	     float:right;
+	     border:2px solid #0A6BB3;
+	     padding:5px;
+	 }
+
+	 .upload {
+	     background:#0A6BB3;
+	     color:white;
+	     font-weight: bold;
+	     text-align: center;
+	 }
+   #h3-title {
+     display: block;
+   }
+   .dbug { border: 1px dotted red }
+	</style>
+	<script src="alain_UploadFileToIpfs.js" type='text/javascript'></script>
+    </head>
+    <body>
+	<div class="header">List of MFS Files and Directories</div>
+
+
+	<div id="block_right">
+	    <div class="upload"> Upload file to path of MFS</div><br>
+	    <form method=POST>
+		<input type=file><br>
+
+	
+		    <input type="radio" name="nameoffile" id="same_name" checked>Upload with the same name<br>
+		    <input type="radio" name="nameoffile" id="other_name">
+			<input type="text" onchange="checked_radio()" name="nameoffile" id="fil_name" placeholder="Upload with an other name"><br>
+
+		<input type=button onclick="writeFile(this.closest('form'))" value="Upload">
+	    </form>
+	</div>
+
+
+
+	<form method=POST>
+	    Local Ipfs path <input id="path" name=mfspath type=text placeholder="mfs path">
+	    <input type=button onClick="getForm(this.closest('form'))" value="Check">
+	    <input type=button onClick="document.location.reload(true)" value="Reset page">
+	    <pre id="ls"></pre>
+	</form>
+	<div>This Mfs <b><span id=type>type</span></b> has Hash <b><span id=hash>hash</span></b></div>
+        <p style="color:red" id="error"></p>
+	
+
+  <div>
+  <table id=ls-result class=dbug>
+  <tr><th colspan=4><h3 id=h3-title class=upload> ... </h3></th>
+  </table>
+  </div>
+	<script>
+
+	 function checked_radio () {
+	     let  rad = document.getElementById('other_name');
+	     console.log ('rad',rad);
+	     rad.checked = true;
+	     document.getElementById('other_name').innerHTML = rad;
+	 }
+	 
+	 function getForm(form) {
+	     console.log("getForm : form.elements ",form.elements);
+	     let mfspath = form.elements[0].value;
+	     console.log("getForm : mfspath '"+mfspath+"'");
+
+	     getHashAndType(mfspath);
+	     getFileList(mfspath)
+	 }
+	 
+	 function getFileList(mfspath) {
+	     const api_url = 'http://127.0.0.1:5001/api/v0/'
+	     var url = api_url + 'files/ls?arg=' + mfspath + '&l=true'
+	     console.log("getFileList : url '"+url+"'");
+	     return fetch(url, { method: "POST", mode: 'cors'})
+		 .then (validate)
+	   .then (resp => resp.json())
+		 .then (body => { body.mfspath = mfspath; return body})
+		 .then (displayJson)
+		 .catch(logError)
+	 }
+	 
+	 function linkIpfsHash (hash) {
+	     let api_url = 'http://127.0.0.1:5001/ipfs/';
+	     let link = '<a href="';
+	     link += api_url;
+	     link += hash;
+	     link += '" target="_blank">';
+	     link += hash;
+	     link += '</a>';
+	     console.log ('linkIpfsHash link',link);
+	     return link;
+	 }
+
+	 function typeOfKeyOfJson (key,json) {
+	     let typ = json[key]['Type'];
+	     if (typ == 0) { return '<img src="images/file.png" width="25px" height="25">'; }
+	     else { return '<img src="images/folder.png" width="25px" height="25">'; }
+	 }
+
+	 function sizeOfFile(key,json) {
+	     let siz = json[key]['Size'];
+	     if (siz > 0) { return ' ('+siz+' octets) '; }
+	     else {return "";}
+	 }
+
+	 function createButtonOfMfsPath (mfspath) {
+	     let but = '<input type="button" id="name_link" value="';
+	     but += mfspath;
+	     but += '" onclick="addNameOnInputMfsPath(this.value)"';
+	     but += '">';
+	     return but;
+	 }
+
+	 function addNameOnInputMfsPath (mfspath) {
+	     console.log ('addNameOnInputMfsPath name', mfspath);
+	     let old_path = document.getElementById('path').value;
+	     console.log ('addNameOnInputMfsPath old path', old_path);
+	     let path = old_path;
+	     if (old_path == '/'){
+		 path += mfspath;
+	     } else {
+		 path += '/';
+		 path += mfspath;
+	     }
+	     console.log ('addNameOnInputMfsPath path', path);
+	     var x = document.getElementById('path');
+	     x.value = path;
+	 }
+
+	 function removeTable() {
+	     var el = document.getElementById('table');
+	     console.dir(el);
+	     
+	     var sibling = document.querySelector('#table');	     
+	     
+	     
+	     /* while (sibling) {
+		console.error('sibling',sibling);
+		
+		//el.nextElementSibling.remove();
+		
+		nextSibling = sibling.nextSibling;
+		console.error('next sibling',nextSibling);
+		if (nextSibling != null) {
+		sibling.remove();
+		sibling = nextSibling;
+		}
+		} */
+	 }
+
+	 
+	 function displayJson(json) {
+	     console.log('displayJson json', json);
+	     let mfspath = json.mfspath
+       let entries = json.Entries
+
+	     table = document.getElementById('ls-result')
+
+
+       for (i=1; i<table.rows.length; i++) {
+         table.deleteRow(i);
+       }
+	     updateElement ('h3-title', mfspath);
+		   let tr = createElementTable (table,'tr', '');
+	     createElementTable (tr, 'th', 'Type');
+	     createElementTable (tr, 'th', 'Name');
+	     createElementTable (tr, 'th', 'Hash')
+	     for (i=0; i<entries.length; i++) {
+		 var hash = entries[i]['Hash'];
+		 var name = entries[i]['Name'];
+		 console.log('displayJson name',name);
+		 var hash_link = linkIpfsHash (hash);
+		 var fil_dir = typeOfKeyOfJson (i,entries);
+		 var siz = sizeOfFile(i,entries);
+		 let tr = createElementTable (table,'tr', '');
+		 createElementTable (tr, 'td', fil_dir);
+		 createElementTable (tr,'td', createButtonOfMfsPath(name));
+		 //createElementTable (tr,'td', siz);
+		 createElementTable (tr,'td', hash_link);
+	     }
+	 }
+	 
+	 function updateElement (id, value) {
+	     let doc_balise = document.getElementById(id);
+	     doc_balise.innerHTML = value;
+   }
+	 function createElement (balise, id, value, input_type) {
+	     
+	     let doc_balise = document.createElement(balise);
+	     doc_balise.id = id;
+	     doc_balise.value = value;
+	     if (balise == 'input') {doc_balise.type = input_type};
+	     doc_balise.innerHTML = value;
+	     document.body.appendChild(doc_balise);
+	 }
+
+	 function createElementTable (el, tag, value) {
+	     let doc_tag = document.createElement(tag);
+	     doc_tag.style = "padding:7px";
+	     //doc_tag.value = value;
+	     doc_tag.innerHTML = value;
+	     el.appendChild(doc_tag);
+       return doc_tag;
+	 }
+	 
+	 
+	 function validate(resp) {
+	     if (resp.status >= 200 && resp.status < 300) {
+		 return Promise.resolve(resp)
+	     }
+	     return Promise.reject(new Error(resp.statusText))
+	 }
+
+	 function displayByIdOfTagOfValue(tag, value) {
+	     document.getElementById(tag).innerHTML = value
+	 }
+	 
+	 function logError(err) {
+	     console.log("logError : input err ",err);
+	     const message = err.message;
+	     console.log("logError : message '"+message+"'");
+	     document.getElementById("error").innerHTML = message;
+	     switch (message){
+		 case "NetworkError when attempting to fetch resource.":
+		     document.getElementById("error").innerHTML = "NetworkError because ipfs has not been launched\nrun : jsm; . config.sh; ipmsd.sh";
+		     return process.abort();
+		     break;
+		 case "Internal Server Error":
+		     document.getElementById("error").innerHTML = "Internal Server Error because ipfs file path was uncorrect";
+		     return process.abort();
+		     break;
+		 default:
+		     console.log("logError : output err '"+err+"'");
+	     } // switch
+	 }
+	 
+	 function callback(tag) {
+	     console.log('callback tag: '+tag)
+	     const result = obj => {
+		 let e = document.getElementById(tag);
+		 console.log("callback obj:",obj)
+		 e.innerHTML = obj;
+	     };
+	     return result
+	 }
+	 
+	 function callbackIpfsIo(tag) {
+	     console.log('callbackIpfsIo tag: '+tag)
+	     const substi = obj => {
+		 let e = document.getElementById(tag);
+		 e.innerHTML = "<a href=https://ipfs.io/ipfs/"+obj+">"+obj+"</a>";
+	     };
+	     return substi
+	 }
+	 
+	 function callbackIpfsLocal(tag) {
+	     console.log('callbackIpfsLocal tag: '+tag)
+	     const substi = obj => {
+		 let e = document.getElementById(tag);
+		 e.innerHTML = "<a href=http://127.0.0.1:5001/ipfs/"+obj+">"+obj+"</a>";
+	     };
+	     return substi
+	 }
+	 
+	 function IpfsException(message) {
+	     this.message = message;
+	     this.name = "IpfsException";
+	 }
+
+	 function getHashAndType(mfspath) {
+	     console.log('getHashAndType input mfspath '+mfspath)
+	     const webui = 'http://127.0.0.1:5001';
+	     const api_url = webui + '/api/v0/'
+	     
+	     var url = api_url + 'files/stat?&arg='+mfspath+'&hash=true&type=true'
+	     return fetchGetJson(url)
+		 .then( obj => {console.log('getHashAndType obj',obj); return Promise.resolve([obj.Hash, obj.Type]) })
+		 .then(callbackTuple('hash','type'))
+		 .catch(logError)
+	 }
+
+	 function fetchGetJson(url) {
+	     console.log('fetchGetJson input url '+url)
+	     return fetch(url, { method: "GET"} )
+		 .then(validate)
+		 .then( resp => {console.log('fetchGetJson resp',resp); return resp.json()} )
+	 }
+	 
+	 function callbackTuple(tag1, tag2) {
+	     const substi = ([obj1, obj2]) => {
+		 let url = linkIpfsHash (obj1);
+		 document.getElementById(tag1).innerHTML = url;
+		 document.getElementById(tag2).innerHTML = obj2;
+	     };
+	     return substi
+	 }
+
+
+	</script>
+
+	
+    </body>
+</html>
