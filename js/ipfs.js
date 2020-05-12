@@ -9,13 +9,19 @@ console.log('api_url: ',api_url)
 // detecte the core ...
 const core=getCoreName(document.location.href)
 const pp = core['dir'].substr(1,2);
-document.getElementById('core').innerHTML = core.name
+let coreid = document.getElementById('core')
+if (coreid) {
+  document.getElementById('core').innerHTML = core.name
 console.log('core: ',core)
+}
+
+var container = document.getElementsByClassName('container');
 
 // get the peer id ...
 let peerid = getPeerId()
 .then(id => { peerid = (typeof(id) == 'undefined') ? 'QmYourIPFSisNotRunning' : id; return peerid })
-.then( updateByName('container','peerid') )
+//.then( updateGlobalContainer('peerid'))
+// .then( updateByName('container','peerid') )
 .then( updatePeerId )
 .then( peerid => {
   let s = peerid.substr(0,7);
@@ -27,10 +33,17 @@ let peerid = getPeerId()
 function updatePeerId(id) { 
   let e = document.getElementsByTagName('form')[0].elements['peerid'];
   console.log('peerid: '+id)
-  console.log(e.outerHTML)
-  e.value = e.value.replace(new RegExp(':peerid','g'),id)
+  if (typeof(e) != 'undefined') {
+    console.log(e.outerHTML)
+    e.value = e.value.replace(new RegExp(':peerid','g'),id)
+  }
   return id
 }
+
+function updateGlobalContainer(name) {
+  return value => { container.innerHTML = container.innerHTML.replace(new RegExp(':'+name,'g'),value); return value; }
+}
+
 
 function updateByName(where,name) { return value => {
    if (typeof(callback) != 'undefined') {
@@ -146,10 +159,24 @@ function getContentHash(buf) {
 }
 
 function ipfsRmMFSFile(mfspath) {
-   url = api_url + 'files/rm?arg=mfspath'
-   return fetchGetText(url)
-   .then( resp => resp.json() )
+   url = api_url + 'files/rm?arg='+mfspath
+   return fetch(url)
+   .then( resp => {
+      if (resp.ok) { return resp.text(); }
+      else { return resp.json(); }
+   })
    .catch(logError)
+}
+function ipfsCpMFSFile(target,source) {
+   url = api_url + 'files/cp?arg='+source+'&arg='+target;
+   return fetch(url)
+   .then( resp => {
+      console.log('resp: ',resp)
+      if (resp.ok) { return resp.text(); }
+      else { return resp.json(); }
+   })
+   .catch(logError)
+
 }
 function ipfsWriteContent(mfspath,buf) {
 // truncate doesn't work !
@@ -175,14 +202,6 @@ function ipfsWriteText(mfspath,buf) {
   .catch(consLog('ipfsWriteText.createParent'))
 }
 
-
-function ipfsWriteJson(mfspath,obj) {
-  return createParent(mfspath)
-  .then( _ => {
-     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
-    return fetchPostJson(url, obj)
-
-}
 
 function ipfsWriteBinary(mfspath,buf) { // truncate doesn't work !
   return createParent(mfspath)
@@ -229,6 +248,7 @@ function ipfsLogAppend(mfspath,record) {
 }
 
 function createParent(path) {
+  console.log('createParent: '+path)
   let dir = path.replace(new RegExp('/[^/]*$'),'');
   var url = api_url + 'files/stat?arg=' + dir + '&size=true'
   return fetch(url).then( resp => resp.json() )
@@ -244,7 +264,7 @@ function createParent(path) {
       return fetch(url).then(
        resp => {
          console.log('mkdir.resp: ',resp)
-         if (resp.text() == '') { // if mkdir sucessful, return hash
+         if (resp.ok) { // if mkdir sucessful, return hash
            var url = api_url + 'files/stat?arg=' + dir + '&size=true'
            return fetch(url).then( resp => resp.json() )
          } else {
@@ -255,7 +275,7 @@ function createParent(path) {
       .catch(logError)
     } 
   })
-  .catch(logError)
+  .catch(consLog('Error:'))
 }
 
 function getMFSFileSize(mfspath) {
@@ -280,7 +300,12 @@ function getMFSFileHash(mfspath) {
    .catch(logError)
 }
 
-
+function fetchAPI(url) {
+  return fetch(url)
+  .then
+  .catch(ConsLog('fetchAPI')) {
+  }
+}
 
 function getPeerId() {
      let url = api_url + 'config?&arg=Identity.PeerID&encoding=json';
