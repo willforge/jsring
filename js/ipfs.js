@@ -5,6 +5,10 @@ if (typeof(api_url) == 'undefined') {
 var api_url = 'http://127.0.0.1:5001/api/v0/'
 console.log('api_url: ',api_url)
 }
+if (typeof(gw_url) == 'undefined') {
+var gw_url = 'http://127.0.0.1:8080'
+console.log('gw_url: ',gw_url)
+}
 
 // detecte the core ...
 const core=getCoreName(document.location.href)
