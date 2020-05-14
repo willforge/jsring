@@ -6,6 +6,8 @@
 -->
 <div class=container>
 <span id=core></span>
+<br><span class=id1>:peerid</span>
+<br><span class=id2>:hash</span>
 <form>
 peerid: <input name=peerid value=":peerid" size=47>
 <br>mfs: <input name=mfspath value="/my/identity/public.yml">
@@ -24,22 +26,34 @@ peerid: <input name=peerid value=":peerid" size=47>
 
 <script>
 const container = document.getElementsByClassName('container')[0];
-const form = document.getElementsByTagName('form')[0];
+var form = document.getElementsByTagName('form')[0];
 
 let peerid = getPeerId()
-.then(id => { peerid = (typeof(id) == 'undefined') ? 'QmYourIPFSisNotRunning' : id; return peerid })
-.then( updateByName('container','peerid') )
+.then(id => { peerid = (typeof(id) == 'undefined') ? 'QmIPFSisNotRunning' : id; return peerid })
+/*
+.then( x => {
+   updateValue_cb(form.elements['peerid'],x);
+   return x
+})
+*/
+.then( updateByName('container','peerid') ) // mess up the form
+.then(consLog('peerid: '))
 .catch(logError);
 
 
 load(window).then( _ => { // on window load compute the hash of initial mfspath's value
    console.log('// window loaded')
-   inipath = form.elements['mfspath'].value
+   var form = document.getElementsByTagName('form')[0];
+   const inipath = form.elements['mfspath'].value
    console.log('initial path: ',inipath)
    return getHash(inipath)
-.then( updateByName('container','hash') )
-//   .then( updateValue(form.elements['hash']) )
-//   .then( h => { updateValue_cb(form.elements['hash'],h); return h })
+ .then( updateByName('id2','hash') )
+// .then( updateValue(form.elements['hash']) )
+ .then( x =>  {
+    updateValue_cb(document.getElementsByTagName('form')[0].elements['hash'],x)
+    return x
+  }
+  )
    .then(consLog('hash: '))
    .catch(logError)
 }).catch(consLog('load'))

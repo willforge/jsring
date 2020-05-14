@@ -1,4 +1,6 @@
 // ipfs routines
+//
+// 
 console.log('ipfs.js: v1.0');
 
 if (typeof(api_url) == 'undefined') {
@@ -10,81 +12,34 @@ var gw_url = 'http://127.0.0.1:8080'
 console.log('gw_url: ',gw_url)
 }
 
-// detecte the core ...
-const core=getCoreName(document.location.href)
-const pp = core['dir'].substr(1,2);
-let coreid = document.getElementById('core')
-if (coreid) {
-  document.getElementById('core').innerHTML = core.name
-console.log('core: ',core)
-}
-
 var container = document.getElementsByClassName('container');
 
-// get the peer id ...
+// get and replace the peer id ...
 let peerid = getPeerId()
 .then(id => { peerid = (typeof(id) == 'undefined') ? 'QmYourIPFSisNotRunning' : id; return peerid })
-//.then( updateGlobalContainer('peerid'))
-// .then( updateByName('container','peerid') )
-.then( updatePeerId )
+//.then( replaceNameInGlobalContainer('peerid'))
+// .then( replaceNameInClass('peerid','container') )
+.then( replacePeerIdInForm )
 .then( peerid => {
   let s = peerid.substr(0,7);
   console.log('s: ',s);
-  replaceHTML('shortid',s)
+  replaceInTagsByClassName('shortid',s)
 })
 .catch(logError);
 
-function updatePeerId(id) { 
-  let e = document.getElementsByTagName('form')[0].elements['peerid'];
-  console.log('peerid: '+id)
-  if (typeof(e) != 'undefined') {
-    console.log(e.outerHTML)
-    e.value = e.value.replace(new RegExp(':peerid','g'),id)
+function replacePeerIdInForm(id) { 
+  let forms = document.getElementsByTagName('form');
+  console.log('forms: ',forms);
+  if (forms.length > 0) { 
+     let e = forms[0].elements['peerid'];
+     console.log('peerid: '+id)
+     if (typeof(e) != 'undefined') {
+       console.log(e.outerHTML)
+       e.value = e.value.replace(new RegExp(':peerid','g'),id)
+     }
   }
   return id
 }
-
-function updateGlobalContainer(name) {
-  return value => { container.innerHTML = container.innerHTML.replace(new RegExp(':'+name,'g'),value); return value; }
-}
-
-
-function updateByName(where,name) { return value => {
-   if (typeof(callback) != 'undefined') {
-      callback(name,value)
-   } else {
-      let elements = document.getElementsByClassName(where);
-      for (let i=0; i<elements.length; i++) {
-         let e = elements[i];
-         e.insertAdjacentHTML('beforeEnd', e.innerHTML.replace(new RegExp(':'+name,'g'),value))
-         //console.log(e.innerHTML)
-      }
-   }
-   return value;
- }
-}
-function replaceHTML(name,value) {
-   let elements = document.getElementsByClassName(name);
-   for (let i=0; i<elements.length; i++) {
-      let e = elements[i];
-      /* assign outerHTML doesn't seem to work directly */
-      /*
-      e.insertAdjacentHTML('beforeBegin', e.outerHTML.replace(new RegExp(':'+name,'g'),value))
-      console.dir(e.parentElement)
-      e.parentElement.removeChild(e)
-      console.log('outer: '+e.outerHTML); /* old element still exist !
-
-      */
-      for (let a of ['href','title','src','innerHTML','alt']) {
-         if (typeof(e[a]) != 'undefined' && e[a].match(name)) {
-            console.log(a+': ',e[a])
-            e[a] = e[a].replace(new RegExp(':'+name,'g'),value)
-         
-         }
-      }
-   }
-}
-
 
 function ipfsPublish(pubpath) {
   let parent;
@@ -151,12 +106,12 @@ function ipfsAddTextFile(file) {
  .catch(logError)
 }
 
-function getContentHash(buf) {
+function ipfsGetContentHash(buf) {
  url = api_url + 'add?file=blob.data&cid-version=0&hash-only=1'
  console.log('url: '+url);
  return fetchPostBinary(url,buf)
  .then( resp => resp.json() )
- .then(consLog('getContentHash'))
+ .then(consLog('ipfsGetContentHash'))
  .then( json => json.Hash )
  .catch(logError)
 
@@ -306,41 +261,21 @@ function getMFSFileHash(mfspath) {
 
 function fetchAPI(url) {
   return fetch(url)
-  .then
-  .catch(ConsLog('fetchAPI')) {
-  }
+  .then(obj => { return obj; })
+  .catch(ConsLog('fetchAPI'))
 }
 
 function getPeerId() {
      let url = api_url + 'config?&arg=Identity.PeerID&encoding=json';
      return fetch(url,{ method: "GET"} )
      .then( resp => resp.json() )
-     .then( obj => { return Promise.resolve(obj.Value) })
+     .then( obj => {
+        if (typeof(obj) != 'undefined') {
+            return Promise.resolve(obj.Value)
+        } else {
+            return Promise.reject(obj)
+        }
+      })
      .catch(logError)
 }
 
-function getCoreName(url) {
-  console.log('getCoreName.url: '+url)
-  let core = {};
-  if (url.match('holo') ) {
-    core['name'] = 'holoRings'
-    core['index'] = 'hlindex.log'
-    core['dir'] = '/.hlrings';
-  } else if (url.match('block')) {
-    core['name'] = 'blockRing™'
-    core['dir'] = '/.brings';
-  } else if (url.match('KIN')) {
-    core['name'] = 'Krys*thal INtelligence Network'
-    core['index'] = 'knindex.log'
-    core['dir'] = '/.knrings';
-  } else if (url.match('js')) {
-    core['name'] = 'jsRings™'
-    core['index'] = 'jsindex.log'
-    core['dir'] = '/.jsrings';
-  } else {
-    core['name'] = 'persoRings'
-    core['index'] = 'prindex.log'
-    core['dir'] = '/.prings'; // privateRings
-  }
-  return core;
-}

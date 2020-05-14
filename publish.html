@@ -54,7 +54,7 @@ img:hover {
 <br>MFS path: <input name=mfspath onChange="pathChange(this.parentNode,this.value)" value=/my/identity/./public.yml placeholder="file's mfs path" size=63>
 <input type=button value="store" onclick="storeFile(this.parentNode)">
 <br><span>url: <a id=url href="#"></a></span>
-<br>previous: <input name="hash" type=text value="" placeholder="hash value" size=47>
+<br>previous: <input name="hash" type=text value="Qm112" placeholder="hash value" size=47>
 <br>status: I [<input name="status" type=radio value="agree" placeholder="hash value"><label for="agree"> agree</label>
 <input name="status" type=radio value="disagree" placeholder="hash value"><label for="disagree"> disagree</label>]
 with the content of the file
@@ -119,8 +119,13 @@ load(window).then( _ => { // on window load compute the hash of initial mfspath'
    inipath = form.elements['mfspath'].value
    console.log('initial path: ',inipath)
    return getMFSFileHash(inipath)
-   .then(consLog('load.hash.0: '))
-   .then( updateValue(form.elements['hash']) )
+   .then( hash => {
+      console.log('input.hash: ',form.elements['hash'])
+      form.elements['hash'].value = hash ;
+      console.log('input.hash: ',form.elements['hash'])
+      return hash
+   })
+   // .then( updateValue(form.elements['hash']) )
    .then(consLog('load.hash.1: '))
    .catch(logError)
 }).catch(consLog('load'))
@@ -135,17 +140,17 @@ function callback(obj) {
 
 function fileChange(form,file) {
  // onChange="getFileSource(this.files[0]).then(assign(this.parentNode.elements['mfspath'].value))"
- return readAsText(file)
+ return readAsBinaryString(file)
  .then( content => {
    file.content = content
-   console.log('readAsText.file: ',file)
+   console.log('readAsBinaryString.file: ',file)
 
    let source = getContentSource(content);
    form.elements['mfspath'].value = source;
    document.getElementById('url').innerHTML = 'file://...'
-   let promise = getContentHash(content)
+   let promise = ipfsGetContentHash(content)
    .then( hash => {
-      file.hash = hash;  return hash;
+      file.hash = hash;
       form.elements['qm'].value = hash;
       replaceInElements('qmlink','href','qm',hash);
       document.getElementById('qmlink').style.display = 'inline';
@@ -177,11 +182,13 @@ function storeFile(form) {
   console.log('storeFile: ',form)
   let mfspath = form.elements['mfspath'].value;
   let file = form.elements['file'].files[0]
-  if (typeof(file.hash) != 'undefined') {
+  if (false && typeof(file.hash) != 'undefined') {
+    // if hash in know, copy it even is file in not under IPFS ;)
+    console.log('file.hash defined')
     return ipfsRmMFSFile(mfspath)
-    .then(
+    .then( _ => {
        return ipfsCpMFSFile(mfspath,'/ipfs/'+file.hash)
-    )
+    })
     .then( _ => {
       e = document.getElementById('url')
       e.href = webui+'/webui/#/files'+mfspath
@@ -189,12 +196,22 @@ function storeFile(form) {
     })
     .catch(logError)
   } else if (typeof(file.content) != 'undefined') {
-    return ipfsWriteText(mfspath,file.content)
-    .then( hash => { form.elements['hash'].value = hash; console.log('storeFile.hash: '+hash); return hash })
-    .then( _ => {
-      e = document.getElementById('url')
-      e.href = webui+'/webui/#/files'+mfspath
-      e.innerHTML = 'mfs:/files'+mfspath
+    return ipfsRmMFSFile(mfspath)
+      .then( _ => {
+         return ipfsWriteBinary(mfspath,file.content)
+         .then( hash => {
+              form.elements['hash'].value = hash;
+              console.log('storeFile.hash: '+hash);
+              return hash
+         })
+         .then( _ => {
+           e = document.getElementById('url')
+           e.href = webui+'/webui/#/files'+mfspath
+           e.innerHTML = 'mfs:/files'+mfspath
+         })
+         .catch(logError)
+      })
+      
     })
     .catch(logError)
   } else {
@@ -218,7 +235,7 @@ function getFileKeywords(file) {
 }
 
 function getContentSource(buf) {
-  const rex = /\$Source: (.*)\$/;
+  const rex = /\$Source: (.*) *\$/;
   let res = buf.match(rex)
   let source = (res) ? res[1] : '';
   console.log('source: ',source)
@@ -370,3 +387,6 @@ function getStuffAsync(param) {
 */
 
 </script>
+<!--
+ $Source: /my/html/publish.html $
+-->
