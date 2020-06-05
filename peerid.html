@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf8"/>
-<link rel=icon href=img/anon.webp>
+<link rel=icon href=img/kyi.png>
 <link rel=stylesheet href=css/style.css>
 </head>
 <div class="first container">
@@ -10,6 +10,7 @@
 
 
 <div class=container>
+<div id=console style="display:none"></div>
 Your Peerid is : <span id=peerid></span>
 
 </div>
@@ -43,7 +44,7 @@ function getPeerID() {
   console.log(url);
   return fetchPostJson(url)
      .then( obj => { return obj.Value })
-     .catch(error)
+     .catch(e => { error('url: '+url+': '+e) })
 }
 
 function fetchPostJson(url) {
@@ -56,5 +57,11 @@ function validate(resp) {
   }
   return Promise.reject(new Error(resp.statusText))
 }
-function error(err) { console.error(err); }
+
+function error(err) {
+ let console = document.getElementById('console')
+ console.innerHTML = err;
+ console.style.display = 'block';
+ console.error(err);
+}
 </script>

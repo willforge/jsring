@@ -8,6 +8,17 @@ body {
    */
 }
 
+#console {
+ position: fixed;
+ bottom: 0.5em;
+ margin: auto;
+ z-index: 99;
+ border: 1px dashed red;
+ color: red;
+ display: block;
+ width: 80%;
+}
+
 img.circle { border-radius: 50%; }
 .container {
   /*
