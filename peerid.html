@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf8"/>
-<link rel=icon href=img/kyi.png>
+<link rel=icon href=img/anon.webp>
 <link rel=stylesheet href=css/style.css>
 </head>
 <div class="first container">
@@ -41,13 +41,13 @@ function callback(tag) {
 function getPeerID() {
   var url = api_url + 'config?&arg=Identity.PeerID&encoding=json'
   console.log(url);
-  return fetchjson(url)
-     .then( obj => { return Promise.resolve(obj.Value) })
+  return fetchPostJson(url)
+     .then( obj => { return obj.Value })
      .catch(error)
 }
 
-function fetchjson(url) {
-  return fetch(url, { method: "GET"} ).then(validate).then( resp => resp.json() )
+function fetchPostJson(url) {
+  return fetch(url, { method: "POST"} ).then(validate).then( resp => resp.json() )
 }
 
 function validate(resp) {
@@ -56,5 +56,5 @@ function validate(resp) {
   }
   return Promise.reject(new Error(resp.statusText))
 }
-function error(err) { console.log(err); }
+function error(err) { console.error(err); }
 </script>
