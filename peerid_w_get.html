@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf8"/>
+<link rel=icon href=img/anon.webp>
+<link rel=stylesheet href=css/style.css>
+</head>
+<div class="first container">
+<h2><div id=logo></div>Your system identity (peerID)</h2>
+</div>
+<br>
+
+
+<div class=container>
+<div id=console style="display:none"></div>
+Your Peerid is : <span id=peerid></span>
+
+</div>
+<div class=footer>
+--&nbsp;<br>
+This page is located at <a href=https://willforge.github.io/jsring/peerid.html>https://willforge.github.io/jsring/peerid.html</a>
+</div>
+
+
+<script>
+// host and port are defined in $IPFS_PATH/config
+const webui = 'http://127.0.0.1:5001';
+//const webui = '{{site.data.ipfs.webui}}'
+const api_url = webui + '/api/v0/'
+
+// calling the function and update the id=peerid
+getPeerID().then(callback('peerid'))
+
+
+function callback(tag) {
+  const substi = peerid => {
+    let e = document.getElementById(tag);
+    e.innerHTML = peerid;
+  };
+  return substi
+}
+
+
+function getPeerID() {
+  var url = api_url + 'config?&arg=Identity.PeerID&encoding=json'
+  console.log(url);
+  return fetchJson(url)
+     .then( obj => { return obj.Value })
+     .catch(e => { error('url: '+url+': '+e) })
+}
+function fetchJson(url) {
+  return fetch(url).then(validate).then( resp => resp.json() )
+}
+
+function fetchPostJson(url) {
+  return fetch(url, { method: "POST"} ).then(validate).then( resp => resp.json() )
+}
+
+function validate(resp) {
+  if (resp.status >= 200 && resp.status < 300) {
+    return Promise.resolve(resp)
+  }
+  return Promise.reject(new Error(resp.statusText))
+}
+
+function error(err) {
+ let console = document.getElementById('console')
+ console.innerHTML = err;
+ console.style.display = 'block';
+ console.error(err);
+}
+</script>
