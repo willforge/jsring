@@ -78,7 +78,7 @@ function ipfsPublish(pubpath) {
 
 function ipfsNamePublish(k,v) {
     var url = api_url + 'name/publish?key='+k+'&arg='+v+'&allow-offline=1&resolve=0';
-    return fetchGetJson(url).catch(logError)
+    return fetchGetPostJson(url).catch(logError)
 }
 
 
@@ -267,7 +267,7 @@ function fetchAPI(url) {
 
 function getPeerId() {
      let url = api_url + 'config?&arg=Identity.PeerID&encoding=json';
-     return fetch(url,{ method: "GET"} )
+     return fetch(url,{ method: "POST"} )
      .then( resp => resp.json() )
      .then( obj => {
         if (typeof(obj) != 'undefined') {
