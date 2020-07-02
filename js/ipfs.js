@@ -15,7 +15,7 @@ console.log('gw_url: ',gw_url)
 var container = document.getElementsByClassName('container');
 
 if (typeof(ipfsversion) == 'undefined') {
-  var ipfsVersion().then( v => { ipfsversion = v })
+  ipfsVersion().then( v => { var ipfsversion = v })
 } else {
   let [callee, caller] = functionNameJS();
   console.log("TEST."+callee+'.ipfsversion: ',ipfsversion);
