@@ -14,6 +14,21 @@ console.log('gw_url: ',gw_url)
 
 var container = document.getElementsByClassName('container');
 
+if (typeof(ipfsversion) == 'undefined') {
+  var ipfsVersion().then( v => { ipfsversion = v })
+} else {
+  let [callee, caller] = functionNameJS();
+  console.log("TEST."+callee+'.ipfsversion: ',ipfsversion);
+}
+
+function ipfsVersion() {
+  let [callee, caller] = functionNameJS();
+  let url = api_url + 'version'
+  return fetchGetPostJson(url).then(
+   obj => { console.log(callee+'.version.obj: ',obj); return obj.Version; })
+  .catch(console.error)
+}
+
 // get and replace the peer id ...
 let peerid = getPeerId()
 .then(id => { peerid = (typeof(id) == 'undefined') ? 'QmYourIPFSisNotRunning' : id; return peerid })
