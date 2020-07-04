@@ -1,7 +1,10 @@
 // ipfs routines
 //
 // 
-console.log('ipfs.js: v1.0');
+console.log('ipfs.js: v1.1');
+console.log(new Error().stack);
+
+
 
 if (typeof(api_url) == 'undefined') {
 var api_url = 'http://127.0.0.1:5001/api/v0/'
@@ -14,7 +17,7 @@ console.log('gw_url: ',gw_url)
 
 var container = document.getElementsByClassName('container');
 if (typeof(ipfsversion) == 'undefined') {
-  ipfsVersion().then( v => { ipfsversion = v })
+  ipfsVersion().then( v => { window.ipfsversion = v })
 } else {
   let [callee, caller] = functionNameJS();
   console.log("TEST."+callee+'.ipfsversion: ',ipfsversion);
@@ -133,7 +136,7 @@ function ipfsGetContentHash(buf) {
 
 function ipfsRmMFSFile(mfspath) {
    url = api_url + 'files/rm?arg='+mfspath
-   return fetch(url)
+   return fetch(url,{method:'POST'})
    .then( resp => {
       if (resp.ok) { return resp.text(); }
       else { return resp.json(); }
@@ -142,7 +145,7 @@ function ipfsRmMFSFile(mfspath) {
 }
 function ipfsCpMFSFile(target,source) {
    url = api_url + 'files/cp?arg='+source+'&arg='+target;
-   return fetch(url)
+   return fetch(url,{method:'POST'})
    .then( resp => {
       console.log('resp: ',resp)
       if (resp.ok) { return resp.text(); }
@@ -224,7 +227,7 @@ function createParent(path) {
   console.log('createParent: '+path)
   let dir = path.replace(new RegExp('/[^/]*$'),'');
   var url = api_url + 'files/stat?arg=' + dir + '&size=true'
-  return fetch(url).then( resp => resp.json() )
+  return fetch(url, {method:'POST'}).then( resp => resp.json() )
   .then( json => {
     if (typeof(json.Code) == 'undefined') {
       console.log('-d '+dir + '; stat: ', json);
@@ -234,12 +237,12 @@ function createParent(path) {
       console.log('! -e '+dir);
       console.log(json)
       url = api_url + 'files/mkdir?arg=' + dir + '&parents=true'
-      return fetch(url).then(
+      return fetch(url,{method:'POST'}).then(
        resp => {
          console.log('mkdir.resp: ',resp)
          if (resp.ok) { // if mkdir sucessful, return hash
            var url = api_url + 'files/stat?arg=' + dir + '&size=true'
-           return fetch(url).then( resp => resp.json() )
+           return fetch(url,{method:'POST'}).then( resp => resp.json() )
          } else {
            Promise.reject(new Error(resp.statusText))
          }
@@ -253,14 +256,14 @@ function createParent(path) {
 
 function getMFSFileSize(mfspath) {
   var url = api_url + 'files/stat?arg=' + mfspath + '&size=true'
-  return fetch(url)
+  return fetch(url,{method:'POST'})
   .then( resp => resp.json() )
   .then( json => { return (typeof json.Size == 'undefined') ? 0 : json.Size } )
   .catch(consLog('getMFSFileSize'))
 }
 function getMFSFileHash(mfspath) {
    var url = api_url + 'files/stat?arg='+mfspath+'&hash=true'
-   return fetch(url)
+   return fetch(url,{method:'POST'})
    .then( resp => resp.json() )
    .then( json => {
        if (typeof json.Hash == 'undefined') {
@@ -274,14 +277,14 @@ function getMFSFileHash(mfspath) {
 }
 
 function fetchAPI(url) {
-  return fetch(url)
+  return fetch(url,{method:'POST'})
   .then(obj => { return obj; })
   .catch(ConsLog('fetchAPI'))
 }
 
 function getPeerId() {
      let url = api_url + 'config?&arg=Identity.PeerID&encoding=json';
-     return fetch(url,{ method: "POST"} )
+     return fetch(url,{ method: 'POST'} )
      .then( resp => resp.json() )
      .then( obj => {
         if (typeof(obj) != 'undefined') {
