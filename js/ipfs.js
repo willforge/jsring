@@ -67,7 +67,7 @@ function ipfsPublish(pubpath) {
     let p = pubpath.lastIndexOf('/')
     console.log('p: '+p)
     parent = pubpath.substr(0,p)
-    fname = pubpath.substr(p+1)
+    fname = pubpath.subinfo: str(p+1)
   }
   console.log('parent: ',parent);
   console.log('fname: ',fname);
@@ -134,6 +134,20 @@ function ipfsGetContentHash(buf) {
 
 }
 
+function ipfsRmMFSFileUnless06(mfspath) {
+  if (ipfsversion.substr(0,3) == '0.6') {
+    console.log('info: assumed truncates works !')
+    return Promise.resolve('noop');
+  } else {
+   url = api_url + 'files/rm?arg='+mfspath
+   return fetch(url,{method:'POST'})
+   .then( resp => {
+      if (resp.ok) { return resp.text(); }
+      else { return resp.json(); }
+   })
+   .catch(logError)
+  }
+}
 function ipfsRmMFSFile(mfspath) {
    url = api_url + 'files/rm?arg='+mfspath
    return fetch(url,{method:'POST'})
@@ -154,62 +168,55 @@ function ipfsCpMFSFile(target,source) {
    .catch(logError)
 
 }
+
 function ipfsWriteContent(mfspath,buf) {
-// truncate doesn't work !
-// so do a rm before
+// truncate doesn't work for version <= 0.4 !
+// so it does a rm before
   return createParent(mfspath)
-  .then(ipfsRmMFSFile(mfspath))
+  .then(ipfsRmMFSFileUnless06(mfspath))
   .then( _ => {
-    var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
+    var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=true';
     return fetchPostBinary(url, buf)
     .then( _ => getMFSFileHash(mfspath)) 
     .catch(logError)
    })
    .catch(consLog('ipfsWriteContent'))
 }
-function ipfsWriteText(mfspath,buf) {
+function ipfsWriteText(mfspath,buf) { // truncate doesn't work for version < 0.5 !
   return createParent(mfspath)
+  .then(ipfsRmMFSFileUnless06(mfspath))
   .then( _ => {
-     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=true';
     return fetchPostText(url, buf)
     .then( _ => getMFSFileHash(mfspath)) 
     .catch(logError)
   })
-  .catch(consLog('ipfsWriteText.createParent'))
+  .catch(consLog('ipfsWriteText'))
 }
 
 
-function ipfsWriteBinary(mfspath,buf) { // truncate doesn't work !
+function ipfsWriteBinary(mfspath,buf) { // truncate doesn't work for version < 0.5 !
   return createParent(mfspath)
+  .then(ipfsRmMFSFileUnless06(mfspath))
   .then( _ => {
-     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=true';
     return fetchPostBinary(url, buf)
     .then( _ => getMFSFileHash(mfspath)) 
     .catch(logError)
   })
-  .catch(consLog('ipfsWriteBinary.createParent'))
+  .catch(consLog('ipfsWriteBinary'))
 }
-function ipfsWriteText(mfspath,buf) {
-  return createParent(mfspath)
-  .then( _ => {
-     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
-    return fetchPostText(url, buf)
-    .then( _ => getMFSFileHash(mfspath)) 
-    .catch(logError)
-  })
-  .catch(consLog('ipfsWriteText.createParent'))
-}
-
 
 function ipfsWriteJson(mfspath,obj) {
   return createParent(mfspath)
+  .then(ipfsRmMFSFileUnless06(mfspath))
   .then( _ => {
-     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=false';
+     var url = api_url + 'files/write?arg=' + mfspath + '&create=true&truncate=true';
     return fetchPostJson(url, obj)
     .then( _ => getMFSFileHash(mfspath)) 
     .catch(logError)
   })
-  .catch(consLog('ipfsWriteJson.createParent'))
+  .catch(consLog('ipfsWriteJson'))
 }
 function ipfsLogAppend(mfspath,record) {
   return createParent(mfspath)
