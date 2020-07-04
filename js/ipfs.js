@@ -67,7 +67,7 @@ function ipfsPublish(pubpath) {
     let p = pubpath.lastIndexOf('/')
     console.log('p: '+p)
     parent = pubpath.substr(0,p)
-    fname = pubpath.subinfo: str(p+1)
+    fname = pubpath.substr(p+1)
   }
   console.log('parent: ',parent);
   console.log('fname: ',fname);
