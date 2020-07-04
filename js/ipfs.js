@@ -1,9 +1,19 @@
 // ipfs routines
-//
-// 
-console.log('ipfs.js: v1.1');
-console.log(new Error().stack);
+var thisscript = document.currentScript
+thisscript.version = '1.1';
 
+// if experimental then switch to '../' (i.e. use local js)
+if (thisscript.className.match('exp') && document.location.href.match('michelc') ) {
+  let src = thisscript.src.replace(RegExp('.*/github\.(?:com|io)/'),'../')
+  thisscript.remove();
+  var script = document.createElement('script');
+  script.src = src;
+  document.getElementsByTagName('head')[0].appendChild(script);
+  console.log(thisscript.src+': '+thisscript.version);
+} else {
+   thisscript.name = thisscript.src.replace(RegExp('.*/([^/]+)$'),"$1");
+   console.log(thisscript.name+': '+thisscript.version);
+}
 
 
 if (typeof(api_url) == 'undefined') {
