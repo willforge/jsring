@@ -10,7 +10,6 @@ if (thisscript.className.match('exp') && document.location.href.match('michelc')
   var script = document.createElement('script');
   script.src = src;
   document.getElementsByTagName('head')[0].appendChild(script);
-  await load(document)
 }
 
 console.log(thisscript.name+': '+thisscript.src+' ('+thisscript.version+')');
@@ -41,7 +40,9 @@ function ipfsVersion() {
 }
 
 // get and replace the peer id ...
-getPeerId()
+if (typeof(peerid) == 'undefined')
+ var peerid;
+ getPeerId()
 .then(id => { peerid = (typeof(id) == 'undefined') ? 'QmYourIPFSisNotRunning' : id; return peerid })
 //.then( replaceNameInGlobalContainer('peerid'))
 // .then( replaceNameInClass('peerid','container') )
@@ -52,6 +53,8 @@ getPeerId()
   replaceInTagsByClassName('shortid',s)
 })
 .catch(logError);
+
+}
 
 function replacePeerIdInForm(id) { 
   let forms = document.getElementsByTagName('form');
