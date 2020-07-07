@@ -1,6 +1,7 @@
 // ipfs routines
 var thisscript = document.currentScript
-thisscript.version = '1.1';
+thisscript.version = '1.2';
+thisscript.name = thisscript.src.replace(RegExp('.*/([^/]+)$'),"$1");
 
 // if experimental then switch to '../' (i.e. use local js)
 if (thisscript.className.match('exp') && document.location.href.match('michelc') ) {
@@ -9,12 +10,10 @@ if (thisscript.className.match('exp') && document.location.href.match('michelc')
   var script = document.createElement('script');
   script.src = src;
   document.getElementsByTagName('head')[0].appendChild(script);
-  console.log(thisscript.src+': '+thisscript.version);
-} else {
-   thisscript.name = thisscript.src.replace(RegExp('.*/([^/]+)$'),"$1");
-   console.log(thisscript.name+': '+thisscript.version);
+  await load(document)
 }
 
+console.log(thisscript.name+': '+thisscript.src+' ('+thisscript.version+')');
 
 if (typeof(api_url) == 'undefined') {
 var api_url = 'http://127.0.0.1:5001/api/v0/'
