@@ -42,7 +42,7 @@ function ipfsVersion() {
 }
 
 // get and replace the peer id ...
-let peerid = getPeerId()
+getPeerId()
 .then(id => { peerid = (typeof(id) == 'undefined') ? 'QmYourIPFSisNotRunning' : id; return peerid })
 //.then( replaceNameInGlobalContainer('peerid'))
 // .then( replaceNameInClass('peerid','container') )
