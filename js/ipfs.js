@@ -40,7 +40,7 @@ function ipfsVersion() {
 }
 
 // get and replace the peer id ...
-if (typeof(peerid) == 'undefined')
+if (typeof(peerid) == 'undefined') {
  var peerid;
  getPeerId()
 .then(id => { peerid = (typeof(id) == 'undefined') ? 'QmYourIPFSisNotRunning' : id; return peerid })
