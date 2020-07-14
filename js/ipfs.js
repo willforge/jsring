@@ -1,6 +1,6 @@
 // ipfs routines
 var thisscript = document.currentScript
-thisscript.version = '1.2';
+thisscript.version = '1.1';
 thisscript.name = thisscript.src.replace(RegExp('.*/([^/]+)$'),"$1");
 
 // if experimental then switch to '../' (i.e. use local js)
@@ -9,6 +9,7 @@ if (thisscript.className.match('exp') && document.location.href.match('michelc')
   thisscript.remove();
   var script = document.createElement('script');
   script.src = src;
+  console.log(thisscript.name+'.adding:',script.src);
   document.getElementsByTagName('head')[0].appendChild(script);
 }
 
@@ -135,6 +136,11 @@ function ipfsAddTextFile(file) {
  .catch(logError)
 }
 
+function getMFSContent(path) {
+   let  url = api_url + 'files/read?arg='+path
+   return fetchRespCatch(url)
+}
+
 function ipfsGetContentHash(buf) {
  url = api_url + 'add?file=blob.data&cid-version=0&hash-only=1'
  console.log('url: '+url);
@@ -205,6 +211,29 @@ function ipfsWriteText(mfspath,buf) { // truncate doesn't work for version < 0.5
   })
   .catch(consLog('ipfsWriteText'))
 }
+
+async function ipfsFileAppend(data,file) { // easy way: read + create !
+  let [callee, caller] = functionNameJS(); // logInfo("message !")
+  let buf = await getMFSContent(file)
+  console.log(callee+'.buf:',buf)
+  buf += data+"\n"
+  let status = await ipfsWriteText(brindexf,buf);
+  console.log(callee+'.write.status:',status)
+  let hash = await ipfs_hash(brindexf)
+  console.log(callee+'.hash: ',hash)
+  return hash
+}
+
+async function getIpfsWrapper(name,hash) {
+  let [callee, caller] = functionNameJS(); // logInfo("message !")
+  const empty = 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn';
+  var url = api_url + 'object/patch/add-link?arg='+empty +'&arg=' + name + '&arg=' + hash
+  let obj = await fetchPostJson(url)
+  console.log(callee+'.obj:',obj);
+  let hash = obj.Hash
+  return hash
+}
+
 
 
 function ipfsWriteBinary(mfspath,buf) { // truncate doesn't work for version < 0.5 !
