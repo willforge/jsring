@@ -230,8 +230,8 @@ async function getIpfsWrapper(name,hash) {
   var url = api_url + 'object/patch/add-link?arg='+empty +'&arg=' + name + '&arg=' + hash
   let obj = await fetchPostJson(url)
   console.log(callee+'.obj:',obj);
-  let hash = obj.Hash
-  return hash
+  let whash = obj.Hash
+  return whash
 }
 
 
