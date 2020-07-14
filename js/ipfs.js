@@ -217,9 +217,9 @@ async function ipfsFileAppend(data,file) { // easy way: read + create !
   let buf = await getMFSContent(file)
   console.log(callee+'.buf:',buf)
   buf += data+"\n"
-  let status = await ipfsWriteText(brindexf,buf);
+  let status = await ipfsWriteText(file,buf);
   console.log(callee+'.write.status:',status)
-  let hash = await ipfs_hash(brindexf)
+  let hash = await ipfs_hash(file)
   console.log(callee+'.hash: ',hash)
   return hash
 }
