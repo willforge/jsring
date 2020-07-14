@@ -136,7 +136,7 @@ function ipfsAddTextFile(file) {
  .catch(logError)
 }
 
-function getMFSContent(path) {
+function getMFSFileContent(path) {
    let  url = api_url + 'files/read?arg='+path
    return fetchRespCatch(url)
 }
@@ -214,7 +214,7 @@ function ipfsWriteText(mfspath,buf) { // truncate doesn't work for version < 0.5
 
 async function ipfsFileAppend(data,file) { // easy way: read + create !
   let [callee, caller] = functionNameJS(); // logInfo("message !")
-  let buf = await getMFSContent(file)
+  let buf = await getMFSFileContent(file)
   console.log(callee+'.buf:',buf)
   buf += data+"\n"
   let status = await ipfsWriteText(file,buf);
@@ -228,7 +228,7 @@ async function getIpfsWrapper(name,hash) {
   let [callee, caller] = functionNameJS(); // logInfo("message !")
   const empty = 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn';
   var url = api_url + 'object/patch/add-link?arg='+empty +'&arg=' + name + '&arg=' + hash
-  let obj = await fetchPostJson(url)
+  let obj = await fetchGetPostJson(url)
   console.log(callee+'.obj:',obj);
   let whash = obj.Hash
   return whash
