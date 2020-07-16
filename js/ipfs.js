@@ -1,4 +1,14 @@
 // ipfs routines
+//
+// deps:
+//  - essential.js
+//  - sha256.min.js
+//
+// see also: https://www.jsdelivr.com/package/gh/mychelium/js?path=dist&version=ca0824a
+// <script>
+// <script src="https://cdn.jsdelivr.net/gh/mychelium/js@ca0824a/dist/sha256.min.js" integrity="sha256-YIafx9wlTYK6CHM0cY15DbyqIN2pA/Yy4QpMrwf9Cpg=" crossorigin="anonymous"></script>
+// <script src="https://cdn.jsdelivr.net/gh/michel47/snippets@0.7.8/js/essential.js" integrity="sha256-FQCrKCV4H4gAfinouKXwvLZ2SHzYHhBwvPlqVnH0EAs=" crossorigin="anonymous"></script>
+
 var thisscript = document.currentScript
 thisscript.version = '1.1';
 thisscript.name = thisscript.src.replace(RegExp('.*/([^/]+)$'),"$1");
@@ -14,6 +24,16 @@ if (thisscript.className.match('exp') && document.location.href.match('michelc')
 }
 
 console.log(thisscript.name+': '+thisscript.src+' ('+thisscript.version+')');
+
+// --------------------------------------------
+// global variables ...
+if (typeof(core) == 'undefined') {
+  var core = {};
+  core['name'] = 'blockRings™'
+  core['index'] = 'brindex.log'
+  core['history'] = 'history.log'
+  core['dir'] = '/.brings';
+}
 
 if (typeof(api_url) == 'undefined') {
 var api_url = 'http://127.0.0.1:5001/api/v0/'
@@ -31,6 +51,7 @@ if (typeof(ipfsversion) == 'undefined') {
   let [callee, caller] = functionNameJS();
   console.log("TEST."+callee+'.ipfsversion: ',ipfsversion);
 }
+// --------------------------------------------
 
 function ipfsVersion() {
   let [callee, caller] = functionNameJS();
@@ -71,44 +92,59 @@ function replacePeerIdInForm(id) {
   return id
 }
 
-function ipfsPublish(pubpath) {
-  let parent;
-  let fname
-  if (pubpath.match('/./')) {
-  [parent,fname] = pubpath.split('/./')
-  } else {
-    let p = pubpath.lastIndexOf('/')
-    console.log('p: '+p)
-    parent = pubpath.substr(0,p)
-    fname = pubpath.substr(p+1)
-  }
-  console.log('parent: ',parent);
-  console.log('fname: ',fname);
-  // get hash of parent
-  return getMFSFileHash(parent)
-  .then( hash => { // publish hash with folder name
-    let record = hash+': '+parent;
-    console.log('record: ',record)
-    let indexlogf = core.dir+'/published/'+core.index
-    return ipfsLogAppend(indexlogf,record)
-    .then(
-      getMFSFileHash(core.dir) // get hash of POR
-      .then( hash => { // publish under self/peerid
-       return ipfsNamePublish('self','/ipfs/'+hash)
-       .then(consLog('ipfsNamePublish'))
-       .catch(logError)
-      })
-      .catch(logError)
-    )
+async function ipfsPublish(pubpath) {
+   let [callee, caller] = functionNameJS(); // logInfo("message !")
+   let parent;
+   let pname;
+   let fname;
+   if (pubpath.match('/./')) {
+      [parent,fname] = pubpath.split('/./');
+      pname=parent.substr(parent.lastIndexOf('/')+1)
+      fname = pname+'/'+fname;
+   } else {
+      parent = pubpath;
+      let p = parent.slice(0,-1).lastIndexOf('/')
+      console.log(callee+'.p: ',p);
+      //let grandparent = parent.substring(0,p)
+      pname=parent.substr(p+1)
+      fname = pname;
+   }
 
-  })
-  .catch(logError)
-  
+   console.log(callee+'.parent: ',parent);
+   console.log(callee+'.pname: ',pname);
+   console.log(callee+'.fname: ',fname);
+   // get hash of parent
+   let hash = await getMFSFileHash(parent);
+   // get wrappper's hash of parent
+   let whash = await getIpfsWrapperHash(pname,hash);
+   let sha2 = sha256(parent);
+   let shard = sha2.substr(-4,3);
+   let key = sha2.substr(0,18); // truncate to 9 bytes
+   console.log(callee+'.parent: ',parent);
+   console.log(callee+'.sha2: ',sha2);
+   console.log(callee+'.key: ',key);
+   //let record = hash+': '+parent;
+   let record = key+': /ipfs/'+whash+'/'+fname
+   console.log(callee+'.record: ',record);
+   let indexlogf = core.dir+'/shards/'+shard+'/'+core.index;
+   let lhash = await ipfsLogAppend(indexlogf,record);
+   console.log(callee+'.lhash:',lhash);
+   let bhash = await getMFSFileHash(core.dir); // get hash of POR
+   // publish under self/peerid
+   let phash = await ipfsNamePublish('self','/ipfs/'+bhash);
+   console.log(callee+'.phash:',phash);
+   let ppath = '/ipfs/'+phash+'/'+pname;
+   console.log(callee+'.ppath:',ppath);
+   return ppath;
+
 }
 
 function ipfsNamePublish(k,v) {
     var url = api_url + 'name/publish?key='+k+'&arg='+v+'&allow-offline=1&resolve=0';
-    return fetchGetPostJson(url).catch(logError)
+    return fetchGetPostJson(url)
+    .then(consLog('ipfsNamePublish'))
+    .then( json => { return json.Hash })
+    .catch(logError)
 }
 
 
@@ -215,8 +251,8 @@ function ipfsWriteText(mfspath,buf) { // truncate doesn't work for version < 0.5
 async function ipfsFileAppend(data,file) { // easy way: read + create !
   let [callee, caller] = functionNameJS(); // logInfo("message !")
   let buf = await getMFSFileContent(file)
-  console.log(callee+'.buf:',buf)
   buf += data+"\n"
+  console.log(callee+'.buf:',buf)
   let status = await ipfsWriteText(file,buf);
   console.log(callee+'.write.status:',status)
   let hash = await getMFSFileHash(file)
@@ -224,14 +260,29 @@ async function ipfsFileAppend(data,file) { // easy way: read + create !
   return hash
 }
 
-async function getIpfsWrapper(name,hash) {
+async function ipfsShardedFileAppend(data,file) { // easy way: read + create !
   let [callee, caller] = functionNameJS(); // logInfo("message !")
-  const empty = 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn';
-  var url = api_url + 'object/patch/add-link?arg='+empty +'&arg=' + name + '&arg=' + hash
-  let obj = await fetchGetPostJson(url)
-  console.log(callee+'.obj:',obj);
-  let whash = obj.Hash
-  return whash
+  let buf = await getMFSFileContent(file)
+  buf += data+"\n"
+  console.log(callee+'.buf:',buf)
+  let status = await ipfsWriteText(file,buf);
+  console.log(callee+'.write.status:',status)
+  let hash = await getMFSFileHash(file)
+  console.log(callee+'.hash: ',hash)
+  return hash
+}
+
+async function getIpfsWrapperHash(name,hash) {
+   let [callee, caller] = functionNameJS(); // logInfo("message !")
+   //name = name.substring(0,name.indexOf('/'));
+   name = name.split('/')[0]
+   console.log(callee+'.name:',name);
+   const empty = 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn';
+   var url = api_url + 'object/patch/add-link?arg='+empty +'&arg=' + name + '&arg=' + hash;
+   let obj = await fetchGetPostJson(url);
+   console.log(callee+'.obj:',obj);
+   let whash = obj.Hash;
+   return whash
 }
 
 
@@ -263,8 +314,8 @@ function ipfsLogAppend(mfspath,record) {
   return createParent(mfspath)
   .then( _ => getMFSFileSize(mfspath))
   .then( offset => {
-    var url = api_url + 'files/write?arg=' + mfspath + '&raw-leave=true&trickle=true&cid-base=base58btc&create=true&offset='+offset;
     console.log(mfspath,': offset=',offset);
+    var url = api_url + 'files/write?arg=' + mfspath + '&raw-leave=true&trickle=true&cid-base=base58btc&create=true&truncate=false&offset='+offset;
     return fetchPostText(url, record+"\n")
   .then( _ => getMFSFileHash(mfspath)) 
   })
@@ -306,6 +357,7 @@ function getMFSFileSize(mfspath) {
   var url = api_url + 'files/stat?arg=' + mfspath + '&size=true'
   return fetch(url,{method:'POST'})
   .then( resp => resp.json() )
+  .then(consLog('getMFSFileSize'))
   .then( json => { return (typeof json.Size == 'undefined') ? 0 : json.Size } )
   .catch(consLog('getMFSFileSize'))
 }
